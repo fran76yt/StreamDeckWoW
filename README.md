@@ -398,6 +398,23 @@ Los cambios funcionan en el juego **al momento**; recargar solo hace falta para 
 
 ## 12. Huecos por defecto
 
+### De dónde sale lo que hace cada tecla
+
+Todo lo que hace cada hueco lo decide **el addon**, dentro del juego: ni el plugin ni el perfil de Stream Deck saben qué hechizo hay detrás de una tecla. Para cada hueco, el addon mira por este orden y se queda con lo primero que encuentra:
+
+1. **Lo que has configurado tú** en `/sdeck config`. Se guarda en tus SavedVariables, por personaje.
+2. **El valor por defecto de tu clase**, en [`Defaults/Classes/<Clase>.lua`](Defaults/Classes/Hunter.lua).
+3. **El valor por defecto común** a todas las clases, en [`Defaults/Common.lua`](Defaults/Common.lua).
+4. Si no hay nada, el hueco queda **vacío**.
+
+Los archivos de `Defaults/` son solo un **punto de partida**: que el addon funcione nada más instalarlo, sin configurar nada. En cuanto arrastras algo a un hueco, lo tuyo tiene prioridad y el valor por defecto de ese hueco deja de usarse. Con clic derecho en la ventana vuelves a él.
+
+**¿Hacen falta los archivos por clase?** No son imprescindibles. Sin `Hunter.lua`, el cazador empezaría solo con los huecos comunes (hogar, pociones y campamento) y el resto vacío, hasta que arrastres tú sus habilidades una vez. Tener un archivo por clase da mejor primera impresión, sobre todo si compartes el addon, a cambio de mantener sus listas de IDs. Una clase sin archivo propio funciona igual, solo que empieza con los huecos comunes.
+
+Los valores por defecto usan **IDs** de hechizos y objetos, no nombres, porque los IDs no cambian con el idioma del cliente. Con listas como `spells = { … }` o `items = { … }` el addon elige el primero disponible: el rango más alto de una profesión que conozcas o la mejor poción que lleves.
+
+### Valores actuales
+
 | Hueco | Atajo | Todas las clases | Cazador |
 |---|---|---|---|
 | 1 | Ctrl+Alt+Mayús+F1 | Piedra de hogar | |
