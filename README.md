@@ -4,6 +4,16 @@
 
 # StreamDeck WoW — Léeme
 
+<p align="center">
+  <b>¿Te gusta el proyecto? Sígueme para no perderte las novedades.</b><br>
+  <a href="https://www.youtube.com/@fran_76"><img src="https://img.shields.io/badge/YouTube-Suscr%C3%ADbete-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="Suscríbete en YouTube"></a>
+  <a href="https://www.twitch.tv/fran76"><img src="https://img.shields.io/badge/Twitch-S%C3%ADgueme-9146FF?style=for-the-badge&logo=twitch&logoColor=white" alt="Sígueme en Twitch"></a>
+  <a href="https://x.com/fran76yt"><img src="https://img.shields.io/badge/X-@fran76yt-000000?style=for-the-badge&logo=x&logoColor=white" alt="Sígueme en X"></a><br>
+  <sub>Si te sirve, una suscripción o un follow es la mejor forma de apoyarlo. ⭐ Y una estrella en GitHub también ayuda.</sub>
+</p>
+
+---
+
 Controla **World of Warcraft: Forever** desde una **Stream Deck**: cada tecla lanza un hechizo, usa un objeto o ejecuta una macro, y muestra su icono. Lo que hace cada tecla se configura **dentro del juego**, arrastrando hechizos a una ventana, y la Stream Deck se actualiza sola.
 
 El proyecto tiene tres piezas que trabajan juntas:
