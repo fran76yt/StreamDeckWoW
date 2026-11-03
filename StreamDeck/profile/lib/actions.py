@@ -21,8 +21,10 @@ def state(title=None, image=None, font_size=KEY_FONT_SIZE):
 
 
 def _action(name, plugin, uuid, settings, st):
+    # "Resources" es un campo del formato V3; la aplicación lo deja a null en
+    # todas las acciones normales.
     return {"ActionID": new_uuid(), "LinkedTitle": True, "Name": name, "Plugin": plugin,
-            "Settings": settings, "State": 0, "States": [st], "UUID": uuid}
+            "Resources": None, "Settings": settings, "State": 0, "States": [st], "UUID": uuid}
 
 
 def hotkey_action(title, image, hotkeys, font_size=KEY_FONT_SIZE):
@@ -35,7 +37,8 @@ def page_action(direction, image):
     """Cambio a la página siguiente ("next") o anterior ("prev")."""
     suffix = "next" if direction == "next" else "previous"
     name = "Next Page" if direction == "next" else "Previous Page"
-    return _action(name, PAGES_PLUGIN, PAGES_PLUGIN["UUID"] + "." + suffix, {}, state("", image))
+    # Sin título: la flecha ya lo dice todo.
+    return _action(name, PAGES_PLUGIN, PAGES_PLUGIN["UUID"] + "." + suffix, {}, state(None, image))
 
 
 def switch_profile_action(title, image, profile_uuid):

@@ -11,8 +11,10 @@ with open(_PLUGIN_MANIFEST, encoding="utf-8") as _fh:
     _plugin = json.load(_fh)
 
 # --- Equipo -----------------------------------------------------------------
-# Perfiles de la aplicación de Stream Deck (para detectar el dispositivo).
-STREAMDECK_PROFILES_DIR = os.path.join(os.environ.get("APPDATA", ""), "Elgato", "StreamDeck", "ProfilesV2")
+# Perfiles de la aplicación de Stream Deck (formato V3, desde Stream Deck 7.6).
+# Se usan para detectar el dispositivo y los perfiles de destino, y es donde se
+# instala el perfil generado.
+STREAMDECK_PROFILES_DIR = os.path.join(os.environ.get("APPDATA", ""), "Elgato", "StreamDeck", "ProfilesV3")
 
 # Dónde buscar WoW: mismas unidades y carpetas que el plugin (lib/constants.js).
 WOW_DRIVES = "CDEFGH"
@@ -25,8 +27,8 @@ IMAGE_SIZE = 144
 KEY_COLUMNS = 4
 DIAL_COUNT = 4
 
-# Versión del formato del manifiesto raíz.
-PROFILE_VERSION = "2.0"
+# Versión del formato del manifiesto raíz (V3: Stream Deck 7.6 o posterior).
+PROFILE_VERSION = "3.0"
 
 # --- Códigos de tecla -------------------------------------------------------
 # La acción "Hotkey" de Elgato guarda cada atajo con dos numeraciones:
@@ -62,8 +64,10 @@ WOWDECK_SLOT_ACTION = _plugin["Actions"][0]["UUID"]
 # Estilo de los títulos.
 TITLE_STYLE = {"FontFamily": "", "FontStyle": "Bold", "FontUnderline": False, "OutlineThickness": 2,
                "ShowTitle": True, "TitleAlignment": "bottom", "TitleColor": "#ffffff"}
-KEY_FONT_SIZE = 9
-DIAL_FONT_SIZE = 12
+# Tamaños en la escala del formato V3 (al migrar desde V2, la aplicación
+# multiplica por 4/3: 9 -> 12 en teclas y 12 -> 16 en diales).
+KEY_FONT_SIZE = 12
+DIAL_FONT_SIZE = 16
 
 # --- Colores de las imágenes generadas --------------------------------------
 REST_BACKGROUND = (28, 28, 34)

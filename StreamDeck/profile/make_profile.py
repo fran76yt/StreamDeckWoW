@@ -5,7 +5,7 @@ Uso:
     python make_profile.py <layout> <carpeta_destino> [--uuid UUID] [--icons CARPETA]
 
     layout            nombre de un módulo de layouts/ (p. ej. "wow_forever")
-    carpeta_destino   normalmente %APPDATA%\\Elgato\\StreamDeck\\ProfilesV2, con
+    carpeta_destino   normalmente %APPDATA%\\Elgato\\StreamDeck\\ProfilesV3, con
                       la aplicación de Stream Deck cerrada
     --uuid            UUID de un perfil existente para reemplazarlo
     --icons           carpeta con los iconos .jpg de Wowhead (por defecto ./icons)
@@ -40,7 +40,7 @@ from lib.writer import write_profile  # noqa: E402
 def parse_args():
     p = argparse.ArgumentParser(description="Genera un perfil de Stream Deck a partir de un layout.")
     p.add_argument("layout", help='módulo de layouts/, p. ej. "wow_forever"')
-    p.add_argument("out_root", help="carpeta ProfilesV2 (o una de prueba)")
+    p.add_argument("out_root", help="carpeta ProfilesV3 (o una de prueba)")
     p.add_argument("--uuid", help="UUID de un perfil existente para reemplazarlo")
     p.add_argument("--icons", default=os.path.join(HERE, "icons"), help="carpeta de iconos .jpg")
     p.add_argument("--local", default=os.path.join(HERE, "local.json"), help="configuración del equipo (opcional)")

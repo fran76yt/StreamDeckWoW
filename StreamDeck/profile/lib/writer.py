@@ -1,15 +1,16 @@
 """
 Escritura de un perfil de Stream Deck a disco.
 
-Formato (ProfilesV2):
+Formato (ProfilesV3, Stream Deck 7.6 o posterior):
     <UUID>.sdProfile/
         manifest.json               nombre, dispositivo, páginas, app asociada
+        Images/                     imágenes del perfil (vacía en los nuestros)
         Profiles/
-            <carpeta de página>/
+            <UUID DE LA PÁGINA>/
                 manifest.json       acciones de teclas y diales de esa página
                 Images/*.png        imágenes de las teclas
 
-La carpeta destino suele ser %APPDATA%\\Elgato\\StreamDeck\\ProfilesV2, con la
+La carpeta destino suele ser %APPDATA%\\Elgato\\StreamDeck\\ProfilesV3, con la
 aplicación cerrada: si está abierta, sobrescribe los cambios al salir.
 """
 import json
@@ -81,6 +82,7 @@ def write_profile(layout, out_root, icons_dir, profile_uuid=None):
     """
     profile_uuid = (profile_uuid or new_uuid()).upper()
     profile_dir = os.path.join(out_root, profile_uuid + ".sdProfile")
+    os.makedirs(os.path.join(profile_dir, "Images"), exist_ok=True)
     page_uuids = [new_uuid() for _ in layout["pages"]]
     default_page = new_uuid()   # página "por defecto" vacía que exige la aplicación
 

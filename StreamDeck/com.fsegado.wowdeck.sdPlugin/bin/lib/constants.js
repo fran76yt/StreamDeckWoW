@@ -20,7 +20,11 @@ const NUM_SLOTS = 12;
 
 // Datos propios del plugin (registro y caché de iconos). Fuera de la carpeta
 // del plugin para que sobrevivan a una reinstalación o actualización.
-const DATA_DIR = path.join(process.env.APPDATA || os.tmpdir(), "WoWDeck");
+// Stream Deck 7.6 puede lanzar el plugin con un entorno reducido, sin APPDATA:
+// en ese caso se construye a partir de la carpeta del usuario, que Node
+// obtiene de Windows aunque falten las variables de entorno.
+const APPDATA = process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming");
+const DATA_DIR = path.join(APPDATA, "WoWDeck");
 const PATHS = {
   DATA_DIR,
   ICON_DIR: path.join(DATA_DIR, "icons"),

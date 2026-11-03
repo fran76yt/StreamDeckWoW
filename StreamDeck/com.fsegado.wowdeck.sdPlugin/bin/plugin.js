@@ -54,7 +54,7 @@ function startWatching() {
 }
 
 sd.on("connected", () => {
-  log(`WoW Deck ${VERSION} conectado a Stream Deck`);
+  log(`WoW Deck ${VERSION} conectado a Stream Deck (datos en ${PATHS.DATA_DIR})`);
   helper.start();
   startWatching();
 });

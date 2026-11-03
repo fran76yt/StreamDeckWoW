@@ -8,7 +8,7 @@ Los diales de mascota usan la barra de mascota del juego, así que solo hacen
 algo con clases que tienen mascota (cazador, brujo).
 """
 from lib.keys import key
-from lib.spec import slot, hotkey, next_page, prev_page, switch_profile, dial, wow, home
+from lib.spec import slot, hotkey, next_page, prev_page, dial, wow, rest
 
 LAYOUT = {
     # Un solo perfil para todas las clases: el plugin pinta los huecos según
@@ -29,11 +29,11 @@ LAYOUT = {
         [slot(1), slot(2), slot(3), slot(4),
          slot(5), slot(6), slot(7), next_page()],
 
-        # Página 2: huecos 8-12, Mochilas (atajo por defecto del juego) y
-        # "General" para volver al perfil principal. Stream Deck no siempre
-        # vuelve solo al salir del juego (depende de qué ventana coja el foco).
+        # Página 2: huecos 8-12. Mochilas y Reposo usan atajos que el juego trae
+        # por defecto. Al salir del juego Stream Deck vuelve solo al perfil
+        # predeterminado (el marcado como tal en la aplicación).
         [hotkey("Mochilas", wow("inv_misc_bag_08"), [key("B", shift=True)]), slot(12), slot(8), slot(9),
-         slot(10), slot(11), switch_profile("General", home(), "General"), prev_page()],
+         slot(10), slot(11), hotkey("Reposo", rest(), [key("X")]), prev_page()],
     ],
 
     # Diales, iguales en todas las páginas: girar izquierda, girar derecha, pulsar.

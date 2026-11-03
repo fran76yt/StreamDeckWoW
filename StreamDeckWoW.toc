@@ -15,7 +15,8 @@
 ## Interface: 16001
 
 ## Title: StreamDeck WoW
-## Notes: Asigna los atajos Ctrl+Alt+Mayús+F1..F12 de la Stream Deck a hechizos, objetos o macros. /sdeck config
+# La descripción va en una sola línea; "|n" es el salto de línea en los textos de WoW.
+## Notes: Asigna los atajos Ctrl+Alt+Mayús+F1..F12 de la Stream Deck a hechizos, objetos o macros.|n/sdeck config
 ## Author: fsegado
 # Versión del addon. Es la única fuente: el código la lee de aquí (Api.AddOnVersion).
 # 0.x mientras sea una versión de pruebas.
