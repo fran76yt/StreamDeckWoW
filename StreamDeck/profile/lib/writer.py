@@ -49,6 +49,8 @@ class PageWriter:
             "slot": lambda k: actions.slot_action(k["slot"]),
             "hotkey": lambda k: actions.hotkey_action(k["title"], self.add_image(k["image"]), k["keys"]),
             "page": lambda k: actions.page_action(k["direction"], self.add_image(("arrow", k["direction"]))),
+            # profile_uuid lo rellena lib/machine.py a partir del nombre del perfil.
+            "switch_profile": lambda k: actions.switch_profile_action(k["title"], self.add_image(k["image"]), k["profile_uuid"]),
         }
         return builders[key["type"]](key)
 

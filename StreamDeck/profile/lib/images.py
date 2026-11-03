@@ -44,6 +44,17 @@ def rest_icon():
     return im
 
 
+def home_icon():
+    """Casa (volver al perfil principal)."""
+    im = Image.new("RGB", (IMAGE_SIZE, IMAGE_SIZE), REST_BACKGROUND)
+    d = ImageDraw.Draw(im)
+    d.polygon([(72, 30), (28, 70), (116, 70)], fill=REST_FOREGROUND)          # tejado
+    d.rectangle((40, 68, 104, 112), fill=REST_FOREGROUND)                     # fachada
+    d.rounded_rectangle((63, 84, 81, 112), 4, fill=REST_BACKGROUND)          # puerta
+    d.rectangle((92, 38, 102, 58), fill=REST_FOREGROUND)                      # chimenea
+    return im
+
+
 def arrow_icon(direction):
     """Flecha de cambio de página ("next" o "prev")."""
     im = Image.new("RGB", (IMAGE_SIZE, IMAGE_SIZE), ARROW_BACKGROUND)
@@ -58,6 +69,7 @@ def arrow_icon(direction):
 _RENDERERS = {
     "wow": lambda icons_dir, name: wow_icon(icons_dir, name),
     "rest": lambda icons_dir: rest_icon(),
+    "home": lambda icons_dir: home_icon(),
     "arrow": lambda icons_dir, direction: arrow_icon(direction),
 }
 

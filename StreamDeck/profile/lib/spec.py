@@ -25,6 +25,15 @@ def prev_page():
     return {"type": "page", "direction": "prev"}
 
 
+def switch_profile(title, image, profile):
+    """Tecla que cambia a otro perfil, indicado por su nombre ("General").
+
+    El nombre se traduce al UUID del perfil en cada equipo (lib/machine.py):
+    los UUID son distintos en cada instalación de Stream Deck.
+    """
+    return {"type": "switch_profile", "title": title, "image": image, "profile": profile}
+
+
 def dial(title, image, left, right, press):
     """Dial: atajos al girar a la izquierda, a la derecha y al pulsar."""
     return {"type": "dial", "title": title, "image": image, "keys": [left, right, press]}
@@ -38,3 +47,8 @@ def wow(icon):
 def rest():
     """Imagen: luna de la tecla Reposo."""
     return ("rest",)
+
+
+def home():
+    """Imagen: casa (volver al perfil principal)."""
+    return ("home",)

@@ -55,6 +55,7 @@ EMPTY_HOTKEY = {"KeyCmd": False, "KeyCtrl": False, "KeyModifiers": 0, "KeyOption
 # --- Acciones ---------------------------------------------------------------
 HOTKEY_PLUGIN = {"Name": "Activate a Key Command", "UUID": "com.elgato.streamdeck.system.hotkey", "Version": "1.0"}
 PAGES_PLUGIN = {"Name": "Pages", "UUID": "com.elgato.streamdeck.page", "Version": "1.0"}
+PROFILE_PLUGIN = {"Name": "Switch Profile", "UUID": "com.elgato.streamdeck.profile.rotate", "Version": "1.0"}
 WOWDECK_PLUGIN = {"Name": _plugin["Name"], "UUID": _plugin["UUID"], "Version": _plugin["Version"]}
 WOWDECK_SLOT_ACTION = _plugin["Actions"][0]["UUID"]
 

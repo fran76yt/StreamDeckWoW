@@ -4,7 +4,7 @@ Acciones del perfil en el formato JSON de Stream Deck.
 Cada función devuelve el diccionario de una acción tal como lo guarda la
 aplicación en el manifest.json de la página.
 """
-from .constants import (HOTKEY_PLUGIN, PAGES_PLUGIN, WOWDECK_PLUGIN, WOWDECK_SLOT_ACTION,
+from .constants import (HOTKEY_PLUGIN, PAGES_PLUGIN, PROFILE_PLUGIN, WOWDECK_PLUGIN, WOWDECK_SLOT_ACTION,
                         TITLE_STYLE, KEY_FONT_SIZE)
 from .keys import pad
 from .naming import new_uuid
@@ -36,6 +36,16 @@ def page_action(direction, image):
     suffix = "next" if direction == "next" else "previous"
     name = "Next Page" if direction == "next" else "Previous Page"
     return _action(name, PAGES_PLUGIN, PAGES_PLUGIN["UUID"] + "." + suffix, {}, state("", image))
+
+
+def switch_profile_action(title, image, profile_uuid):
+    """Cambio a otro perfil del mismo dispositivo.
+
+    DeviceUUID vacío = este mismo dispositivo. PageIndex es la página del
+    perfil de destino que se abre, contando desde 1.
+    """
+    settings = {"DeviceUUID": "", "PageIndex": 1, "ProfileUUID": profile_uuid.lower()}
+    return _action("Switch Profile", PROFILE_PLUGIN, PROFILE_PLUGIN["UUID"], settings, state(title, image))
 
 
 def slot_action(n):
