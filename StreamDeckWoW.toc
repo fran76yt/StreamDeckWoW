@@ -1,0 +1,52 @@
+# ---------------------------------------------------------------------------
+# Archivo TOC ("Table of Contents") del addon.
+#
+# WoW busca en Interface\AddOns\<Carpeta>\<Carpeta>.toc: el nombre del archivo
+# tiene que coincidir con el de la carpeta o el addon no aparece en la lista.
+#
+# Las líneas "## Clave: valor" son metadatos que lee el cliente.
+# Las líneas que empiezan por un solo "#" son comentarios y se ignoran.
+# El resto de líneas son los archivos de código, que se cargan en este orden.
+# ---------------------------------------------------------------------------
+
+# Versión de la interfaz para la que está hecho el addon. Si no coincide con la
+# del cliente, WoW lo marca como "desactualizado". El valor real se consulta en
+# el juego con: /dump select(4, GetBuildInfo())
+## Interface: 16001
+
+## Title: StreamDeck WoW
+## Notes: Asigna los atajos Ctrl+Alt+Mayús+F1..F12 de la Stream Deck a hechizos, objetos o macros. /sdeck config
+## Author: fsegado
+# Versión del addon. Es la única fuente: el código la lee de aquí (Api.AddOnVersion).
+# 0.x mientras sea una versión de pruebas.
+## Version: 0.1.0
+# Icono de la lista de addons (ruta sin extensión; el archivo es Media\Icon.tga,
+# generado por StreamDeck\branding\make_icons.py).
+## IconTexture: Interface\AddOns\StreamDeckWoW\Media\Icon
+
+# Variable global que WoW guarda en disco por personaje en
+# WTF\Account\<cuenta>\<reino>\<personaje>\SavedVariables\StreamDeckWoW.lua
+# Se escribe al hacer /reload, al cerrar sesión o al salir del juego, y es el
+# canal por el que el plugin de Stream Deck se entera de la configuración.
+## SavedVariablesPerCharacter: StreamDeckWoWChar
+
+# Orden de carga: cada módulo usa los que se han cargado antes que él.
+#   Constantes y utilidades genéricas
+Core\Constants.lua
+Core\Util.lua
+#   Acceso a la API del juego y datos
+Core\Keys.lua
+Core\Api.lua
+Core\Storage.lua
+#   Valores por defecto: registro, comunes y uno por clase
+Defaults\Defaults.lua
+Defaults\Common.lua
+Defaults\Classes\Hunter.lua
+#   Lógica
+Core\Slots.lua
+Core\Bindings.lua
+#   Interfaz
+UI\SlotButton.lua
+UI\ConfigWindow.lua
+#   Comandos de chat (usa todo lo anterior)
+Core\Commands.lua

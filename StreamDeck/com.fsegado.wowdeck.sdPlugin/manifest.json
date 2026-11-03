@@ -1,0 +1,34 @@
+{
+  "Actions": [
+    {
+      "Icon": "imgs/action",
+      "Name": "Hueco WoW",
+      "PropertyInspectorPath": "ui/slot.html",
+      "States": [
+        {
+          "Image": "imgs/key",
+          "TitleAlignment": "bottom",
+          "FontSize": 9,
+          "ShowTitle": true
+        }
+      ],
+      "SupportedInMultiActions": true,
+      "Tooltip": "Uno de los 12 huecos del addon StreamDeck WoW. Pulsa Ctrl+Alt+Mayús+F1..F12 y muestra el icono que tengas puesto en el juego.",
+      "UUID": "com.fsegado.wowdeck.slot",
+      "Controllers": ["Keypad"]
+    }
+  ],
+  "Author": "fsegado",
+  "Category": "WoW Forever",
+  "CategoryIcon": "imgs/category",
+  "CodePath": "bin/plugin.js",
+  "Description": "Muestra en la Stream Deck los hechizos y objetos que configuras en el juego con el addon StreamDeck WoW.",
+  "Icon": "imgs/plugin",
+  "Name": "WoW Deck",
+  "Nodejs": { "Version": "20" },
+  "OS": [{ "Platform": "windows", "MinimumVersion": "10" }],
+  "SDKVersion": 2,
+  "Software": { "MinimumVersion": "6.4" },
+  "UUID": "com.fsegado.wowdeck",
+  "Version": "0.1.0.0"
+}

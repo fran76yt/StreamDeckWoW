@@ -1,0 +1,114 @@
+--[[
+Utilidades genéricas
+====================
+
+Piezas que no saben nada de la Stream Deck y que servirían igual en cualquier
+otro addon: eventos, mensajes entre módulos, agrupar llamadas, esperar a salir
+de combate, buscar en listas y escribir en el chat.
+]]
+
+local _, ns = ...
+local Const = ns.Const
+
+local Util = {}
+ns.Util = Util
+
+--------------------------------------------------------------------------------
+-- Eventos de WoW
+--------------------------------------------------------------------------------
+-- En WoW los eventos se reciben a través de un frame. En lugar de que cada
+-- módulo cree el suyo, usamos uno solo y una tabla evento -> funciones. Así
+-- cualquier módulo se suscribe con una línea: Util.On("PLAYER_LOGIN", fn).
+
+local eventFrame = CreateFrame("Frame")
+local eventHandlers = {}
+
+function Util.On(event, fn)
+    if not eventHandlers[event] then
+        eventHandlers[event] = {}
+        eventFrame:RegisterEvent(event)   -- solo escuchamos lo que alguien usa
+    end
+    table.insert(eventHandlers[event], fn)
+end
+
+eventFrame:SetScript("OnEvent", function(_, event, ...)
+    for _, fn in ipairs(eventHandlers[event]) do fn(...) end
+end)
+
+--------------------------------------------------------------------------------
+-- Mensajes internos
+--------------------------------------------------------------------------------
+-- El mismo patrón para avisos entre módulos del addon. Permite que, por
+-- ejemplo, la ventana se entere de que los huecos han cambiado sin que el
+-- núcleo tenga que conocer la ventana (y sin dependencias circulares).
+
+local listeners = {}
+
+function Util.Listen(message, fn)
+    listeners[message] = listeners[message] or {}
+    table.insert(listeners[message], fn)
+end
+
+function Util.Fire(message, ...)
+    for _, fn in ipairs(listeners[message] or {}) do fn(...) end
+end
+
+--------------------------------------------------------------------------------
+-- Control de tiempo y de combate
+--------------------------------------------------------------------------------
+
+-- Devuelve una versión de fn que, por muchas veces que se llame seguidas,
+-- solo se ejecuta una vez, "delay" segundos después de la primera llamada.
+function Util.Debounce(delay, fn)
+    local queued = false
+    return function()
+        if queued then return end
+        queued = true
+        C_Timer.After(delay, function()
+            queued = false
+            fn()
+        end)
+    end
+end
+
+-- Durante el combate WoW bloquea los cambios de atajos y de acciones
+-- protegidas. Esto ejecuta fn ya si se puede o, si no, al salir de combate.
+-- Las peticiones se guardan por función, así que pedir lo mismo diez veces en
+-- combate lo ejecuta una sola vez al terminar.
+local deferred = {}
+
+function Util.OutOfCombat(fn)
+    if not InCombatLockdown() then
+        fn()
+    else
+        deferred[fn] = true
+    end
+end
+
+Util.On("PLAYER_REGEN_ENABLED", function()
+    for fn in pairs(deferred) do
+        deferred[fn] = nil
+        fn()
+    end
+end)
+
+--------------------------------------------------------------------------------
+-- Listas y texto
+--------------------------------------------------------------------------------
+
+-- Devuelve build(v) del primer elemento de la lista que cumple test(v).
+function Util.FirstMatch(list, test, build)
+    for _, v in ipairs(list) do
+        if test(v) then return build(v) end
+    end
+end
+
+-- Texto en color para el chat.
+function Util.Colorize(hex, text)
+    return "|cff" .. hex .. text .. "|r"
+end
+
+-- Mensaje en el chat con el prefijo del addon. Acepta formato como string.format.
+function Util.Print(fmt, ...)
+    print(Const.CHAT_PREFIX .. ": " .. fmt:format(...))
+end

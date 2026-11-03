@@ -1,0 +1,18 @@
+# Dependencias de Node: se instalan con "npm ci" en bin/ (package-lock.json sí se sube)
+node_modules/
+
+# Caché de Python
+__pycache__/
+*.pyc
+
+# Iconos descargados de Wowhead para el generador de perfiles: son arte de
+# Blizzard, no se publican. Se vuelven a descargar desde Wowhead.
+StreamDeck/profile/icons/
+
+# Configuración del equipo para el generador de perfiles (dispositivo, rutas).
+# La plantilla pública es StreamDeck/profile/local.example.json.
+StreamDeck/profile/local.json
+
+# Archivos del sistema
+Thumbs.db
+desktop.ini

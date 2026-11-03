@@ -1,0 +1,5 @@
+{
+  "_comentario": "Copia este archivo como local.json solo si la detección automática no funciona. local.json no se sube al repositorio. Ambos campos son opcionales.",
+  "device": { "Model": "20GBD9901", "UUID": "@(1)[NNNN/NNN/NUMERODESERIE]" },
+  "wow_exe": "C:\\Program Files (x86)\\World of Warcraft\\_forever_\\Wow.exe"
+}

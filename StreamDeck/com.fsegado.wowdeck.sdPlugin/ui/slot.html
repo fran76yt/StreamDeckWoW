@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<!--
+  Panel de ajustes ("Property Inspector") de la acción Hueco WoW.
+
+  Stream Deck lo muestra debajo de la rejilla cuando seleccionas una tecla de
+  esta acción. Es una página web normal que corre dentro de la aplicación y
+  se comunica con ella por WebSocket, igual que el plugin.
+
+  Lo único que se configura aquí es el número de hueco (1-12). Lo que hace
+  cada hueco se elige dentro del juego con /sdeck config.
+-->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Hueco WoW</title>
+<style>
+  /* Colores parecidos a los paneles nativos de Stream Deck. */
+  body { background: #2d2d2d; color: #d8d8d8; font: 13px "Segoe UI", sans-serif; margin: 0; padding: 12px 16px; }
+  label { display: flex; align-items: center; gap: 12px; }
+  select { flex: 1; background: #3d3d3d; color: #fff; border: 0; padding: 4px; }
+  p { color: #9a9a9a; font-size: 12px; line-height: 1.4; }
+</style>
+</head>
+<body>
+<label>Hueco
+  <select id="slot"></select>
+</label>
+<p>Esta tecla pulsa <b id="keys">Ctrl+Alt+Mayús+F1</b>. Lo que hace se elige en el juego con <b>/sdeck config</b>;
+la Stream Deck se actualiza al recargar la interfaz.</p>
+<script>
+  const sel = document.getElementById("slot");
+  // Debe coincidir con los modificadores que usan plugin.js y el addon.
+  const KEYS = "Ctrl+Alt+Mayús+F";
+  for (let n = 1; n <= 12; n++) sel.add(new Option(`${n}  (${KEYS}${n})`, n));
+
+  let ws, uuid;
+
+  // Punto de entrada: Stream Deck llama a esta función global (el nombre es
+  // fijo) al cargar el panel, con el puerto, el identificador de esta tecla
+  // y sus ajustes actuales en actionInfo.
+  function connectElgatoStreamDeckSocket(port, inUUID, registerEvent, info, actionInfo) {
+    uuid = inUUID;
+    const settings = JSON.parse(actionInfo).payload.settings || {};
+    sel.value = settings.slot || 1;
+    show();
+    ws = new WebSocket("ws://127.0.0.1:" + port);
+    // Igual que el plugin: el primer mensaje registra el panel.
+    ws.onopen = () => ws.send(JSON.stringify({ event: registerEvent, uuid }));
+  }
+
+  function show() { document.getElementById("keys").textContent = KEYS + sel.value; }
+
+  // setSettings guarda los ajustes en el perfil de Stream Deck, y este se los
+  // reenvía al plugin con didReceiveSettings, que repinta la tecla.
+  sel.onchange = () => {
+    show();
+    ws.send(JSON.stringify({ event: "setSettings", context: uuid, payload: { slot: Number(sel.value) } }));
+  };
+</script>
+</body>
+</html>
