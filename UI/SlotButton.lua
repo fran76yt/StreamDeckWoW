@@ -13,7 +13,7 @@ Interacción, igual que en una barra de acción del juego:
 ]]
 
 local _, ns = ...
-local Const, Api, Keys, Slots = ns.Const, ns.Api, ns.Keys, ns.Slots
+local Const, Util, Api, Keys, Slots = ns.Const, ns.Util, ns.Api, ns.Keys, ns.Slots
 local UI = Const.UI
 
 ns.SlotButton = {}
@@ -53,7 +53,7 @@ local function onReceiveDrag(self)
 end
 
 local function onClick(self, button)
-    if Api.HasCursorItem() then
+    if Api.HasCursorContent() then
         onReceiveDrag(self)
     elseif button == "RightButton" then
         Slots.Set(self.slot, IsShiftKeyDown() and false or nil)
@@ -77,12 +77,12 @@ local function onEnter(self)
         GameTooltip:SetText((s and s.name) or "Vacío")
     end
     GameTooltip:AddLine(" ")
-    GameTooltip:AddLine("Tecla de la Stream Deck: " .. Keys.Label(self.slot), 0.2, 1, 0.6)
+    GameTooltip:AddLine("Tecla de la Stream Deck: " .. Keys.Label(self.slot), unpack(UI.TOOLTIP_KEY_COLOR))
     if s and s.kind and not s.active then
-        GameTooltip:AddLine("Todavía no lo tienes: la tecla no hará nada.", 1, 0.4, 0.4)
+        GameTooltip:AddLine("Todavía no lo tienes: la tecla no hará nada.", unpack(UI.TOOLTIP_WARNING_COLOR))
     end
-    GameTooltip:AddLine("Arrastra aquí un hechizo, objeto o macro.", 0.8, 0.8, 0.8)
-    GameTooltip:AddLine("Clic derecho: valor por defecto.  Mayús+clic derecho: vaciar.", 0.8, 0.8, 0.8)
+    GameTooltip:AddLine("Arrastra aquí un hechizo, objeto o macro.", unpack(UI.TOOLTIP_HELP_COLOR))
+    GameTooltip:AddLine("Clic derecho: valor por defecto.  Mayús+clic derecho: vaciar.", unpack(UI.TOOLTIP_HELP_COLOR))
     GameTooltip:Show()
 end
 
@@ -96,7 +96,7 @@ local function update(self)
     local empty = not s or s.empty
     self.icon:SetTexture(not empty and iconFor(s) or nil)
     self.icon:SetDesaturated(s and not s.active)          -- en gris lo que aún no tienes
-    self.label:SetText(empty and "|cff666666vacío|r" or (s.short or s.name or ""))
+    self.label:SetText(empty and Util.Colorize(Const.COLOR.EMPTY, "vacío") or (s.short or s.name or ""))
     self.label:SetTextColor(nameColor(self.slot))
 end
 
@@ -110,17 +110,17 @@ function ns.SlotButton.Create(parent, n)
     -- Capas de dibujo: BACKGROUND (fondo) < ARTWORK (icono) < OVERLAY (textos).
     local bg = b:CreateTexture(nil, "BACKGROUND")
     bg:SetAllPoints()
-    bg:SetColorTexture(0, 0, 0, 0.6)
+    bg:SetColorTexture(0, 0, 0, UI.SLOT_BACKGROUND_ALPHA)
     b.icon = b:CreateTexture(nil, "ARTWORK")
     b.icon:SetAllPoints()
     b:SetHighlightTexture(UI.HIGHLIGHT_TEXTURE, "ADD")
 
     local key = b:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    key:SetPoint("BOTTOM", b, "TOP", 0, 2)
+    key:SetPoint("BOTTOM", b, "TOP", 0, UI.KEY_LABEL_OFFSET)
     key:SetText("F" .. n)
 
     b.label = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    b.label:SetPoint("TOP", b, "BOTTOM", 0, -3)
+    b.label:SetPoint("TOP", b, "BOTTOM", 0, UI.NAME_OFFSET)
     b.label:SetWidth(UI.SLOT_SIZE + UI.SLOT_GAP)
     b.label:SetWordWrap(false)   -- los nombres largos se cortan con "..."
 

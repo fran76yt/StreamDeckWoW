@@ -26,21 +26,32 @@ ns.Const = Const
 Const.ADDON_NAME = addonName
 Const.ICON = "Interface\\AddOns\\" .. addonName .. "\\Media\\Icon"
 
--- Número de huecos: uno por tecla F1..F12.
+-- Número de huecos: uno por tecla F1..F12. También aparece en el plugin
+-- (NUM_SLOTS en bin/lib/constants.js y en ui/slot.html, y como texto en el
+-- Tooltip de manifest.json), en la descripción (## Notes) del .toc y en el
+-- layout del perfil (StreamDeck/profile/layouts), que coloca los huecos 1 a 12.
 Const.NUM_SLOTS = 12
 
 -- Modificadores de los atajos. Nadie los teclea a mano (los pulsa la Stream
 -- Deck), así que usamos los tres a la vez: prácticamente ningún programa ni el
 -- propio juego usan esta combinación. Con Ctrl pulsado, Windows no trata Alt+F4
 -- como "cerrar ventana", así que el hueco 4 es seguro.
--- Si se cambian, hay que cambiar también MODIFIERS en el plugin (constants.js).
+-- Si se cambian, hay que cambiar también, en el plugin, MODIFIERS en
+-- bin/lib/constants.js, el texto de ui/slot.html y el Tooltip de manifest.json,
+-- y la descripción (## Notes) del .toc.
 Const.KEY_MODIFIERS = "ALT-CTRL-SHIFT-"          -- formato de WoW (orden fijo: ALT-CTRL-SHIFT)
 Const.KEY_MODIFIERS_LABEL = "Ctrl+Alt+Mayús+"    -- versión legible para el jugador
 
 -- Eventos de WoW tras los que hay que recalcular los huecos, y el retardo con
--- el que se agrupan (llegan en ráfagas de decenas al lootear o aprender).
+-- el que se agrupan (llegan en ráfagas de decenas al lootear o aprender). La
+-- actualización se ejecuta ese tiempo después del primer evento de la ráfaga.
 Const.REFRESH_EVENTS = { "SPELLS_CHANGED", "BAG_UPDATE_DELAYED", "UPDATE_MACROS" }
 Const.REFRESH_DELAY = 0.5
+
+-- Llega cuando el servidor envía los datos de un objeto que el cliente no
+-- tenía en caché (su nombre e icono). Se trata aparte: llega también por
+-- cualquier objeto que cargue el cliente, y solo interesan los que pidió el addon.
+Const.ITEM_INFO_EVENT = "GET_ITEM_INFO_RECEIVED"
 
 -- Mensajes internos entre módulos (no son eventos de WoW).
 Const.MSG = {
@@ -48,12 +59,16 @@ Const.MSG = {
     SLOTS_UPDATED = "SLOTS_UPDATED",   -- se han recalculado y asignado los huecos
 }
 
--- Chat: prefijo de los mensajes (icono + nombre) y colores (hexadecimal RRGGBB).
+-- Chat: prefijo de los mensajes (icono + nombre).
 -- |T ruta:alto:ancho|t inserta una imagen en el texto del chat.
 Const.CHAT_PREFIX = "|T" .. Const.ICON .. ":14:14|t |cff33ff99StreamDeck WoW|r"
-Const.CHAT_COLOR = {
+
+-- Colores de texto (hexadecimal RRGGBB, para Util.Colorize), en el chat y en
+-- la ventana.
+Const.COLOR = {
     MISSING = "ff6060",   -- hueco que todavía no tienes
     EMPTY = "888888",     -- hueco vacío
+    DIM = "888888",       -- texto secundario (versión en el título de la ventana)
 }
 
 -- Icono de interrogación del juego, para huecos sin icono conocido.
@@ -64,6 +79,7 @@ Const.UI = {
     FRAME_NAME = "StreamDeckWoWConfig",   -- nombre global (necesario para cerrar con Escape)
     TITLE = "StreamDeck WoW",
     TITLE_ICON_SIZE = 16,
+    TITLE_ICON_GAP = 4,     -- separación entre el icono y el texto del título
     HEIGHT = 230,
     PADDING = 20,
     SLOT_SIZE = 44,
@@ -71,8 +87,20 @@ Const.UI = {
     SLOT_ROW_GAP = 42,     -- espacio vertical extra para el nombre bajo cada hueco
     SLOTS_TOP = -48,
     COLUMNS = 6,
-    -- Color del nombre del hueco (RGB 0-1): dorado si es personalizado.
+    -- Color del nombre del hueco (RGB 0-1): dorado si es personalizado y gris
+    -- claro si es el valor por defecto.
     NAME_COLOR_CUSTOM = { 1, 0.82, 0 },
     NAME_COLOR_DEFAULT = { 0.85, 0.85, 0.85 },
     HIGHLIGHT_TEXTURE = "Interface\\Buttons\\ButtonHilight-Square",
+    SLOT_BACKGROUND_ALPHA = 0.6,   -- fondo oscuro de cada hueco
+    KEY_LABEL_OFFSET = 2,          -- separación del texto "Fn" sobre el hueco
+    NAME_OFFSET = -3,              -- separación del nombre bajo el hueco
+    HELP_BOTTOM = 44,              -- altura del texto de ayuda desde abajo
+    RELOAD_BUTTON_WIDTH = 200,
+    RELOAD_BUTTON_HEIGHT = 24,
+    RELOAD_BUTTON_BOTTOM = 14,
+    -- Colores de las líneas del tooltip (RGB 0-1).
+    TOOLTIP_KEY_COLOR = { 0.2, 1, 0.6 },
+    TOOLTIP_WARNING_COLOR = { 1, 0.4, 0.4 },
+    TOOLTIP_HELP_COLOR = { 0.8, 0.8, 0.8 },
 }

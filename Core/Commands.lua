@@ -2,9 +2,10 @@
 Comandos de chat
 ================
 
-  /sdeck          estado de las 12 teclas
-  /sdeck config   abrir o cerrar la ventana de configuración
-  /sdeck ayuda    lista de comandos
+  /sdeck           estado de todas las teclas (igual que /sdeck estado)
+  /sdeck estado    estado de todas las teclas
+  /sdeck config    abrir o cerrar la ventana de configuración
+  /sdeck ayuda     versión y lista de comandos (también con cualquier otro texto)
 
 Cada subcomando es una función en la tabla "commands": añadir uno nuevo es
 añadir una entrada.
@@ -17,6 +18,7 @@ local Const, Util, Keys, Slots, Bindings = ns.Const, ns.Util, ns.Keys, ns.Slots,
 -- Resumen al entrar
 --------------------------------------------------------------------------------
 -- La primera vez que se asignan los huecos tras entrar, un resumen en el chat.
+-- "ready" cuenta los huecos asignados y disponibles.
 local reported = false
 Util.Listen(Const.MSG.SLOTS_UPDATED, function(ready)
     if reported then return end
@@ -28,22 +30,40 @@ end)
 -- Subcomandos
 --------------------------------------------------------------------------------
 
--- Línea de estado de un hueco: lo asignado, lo que falta o vacío.
+local function missing(label)
+    return Util.Colorize(Const.COLOR.MISSING, label .. ": no lo tienes")
+end
+
+-- Texto legible de lo asignado: el nombre de la foto, o si es un objeto cuyos
+-- datos aún no han llegado (se asignó como "item:N"), un aviso de que carga.
+local function assignedLabel(target, snapshot)
+    if snapshot and snapshot.name then return snapshot.name end
+    local itemID = target:match("^item:(%d+)$")
+    return itemID and ("objeto " .. itemID .. " (cargando datos)") or target
+end
+
+-- Línea de estado de un hueco: lo asignado, lo asignado que aún no tienes,
+-- lo que falta o vacío.
 local function statusLine(n)
     local target = Bindings.Target(n)
-    if target then return target end
-    local entry = Slots.Entry(n)
-    if entry then
-        return Util.Colorize(Const.CHAT_COLOR.MISSING, (entry.short or entry.name or "?") .. ": no lo tienes")
+    local snapshot = Slots.Get(n)
+    if target then
+        local label = assignedLabel(target, snapshot)
+        if snapshot and snapshot.active then return label end
+        return missing(label)
     end
-    return Util.Colorize(Const.CHAT_COLOR.EMPTY, "vacío")
+    local entry = Slots.Entry(n)
+    if entry then return missing(entry.short or entry.name or "?") end
+    return Util.Colorize(Const.COLOR.EMPTY, "vacío")
 end
 
 local commands = {}
 
 function commands.estado()
     Bindings.Refresh()
-    Util.Print("estado de las teclas:")
+    -- En combate el recálculo se aplaza: lo que se lista es lo último asignado.
+    local note = Util.InCombat() and " (en combate: se actualizará al terminar)" or ""
+    Util.Print("estado de las teclas%s:", note)
     for n = 1, Const.NUM_SLOTS do
         print(("  %s  ->  %s"):format(Keys.Label(n), statusLine(n)))
     end
@@ -55,8 +75,9 @@ end
 
 function commands.ayuda()
     Util.Print("versión %s. Comandos:", ns.Api.AddOnVersion())
-    print("  /sdeck  -  estado de las teclas")
+    print("  /sdeck  -  estado de las teclas (también /sdeck estado)")
     print("  /sdeck config  -  configurar los huecos")
+    print("  /sdeck ayuda  -  esta ayuda")
 end
 
 -- Sin argumentos: el estado.
@@ -66,6 +87,7 @@ commands[""] = commands.estado
 -- Registro del comando
 --------------------------------------------------------------------------------
 -- WoW registra comandos con la convención SLASH_<NOMBRE>1 + SlashCmdList.<NOMBRE>.
+-- Un subcomando desconocido muestra la ayuda.
 SLASH_STREAMDECKWOW1 = "/sdeck"
 SlashCmdList.STREAMDECKWOW = function(msg)
     local name = (msg or ""):match("^%s*(%S*)"):lower()

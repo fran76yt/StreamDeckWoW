@@ -1,11 +1,10 @@
 {
   "name": "wowdeck-plugin",
-  "version": "0.1.0",
   "private": true,
   "description": "Plugin de Stream Deck para StreamDeck WoW (WoW Forever)",
   "main": "plugin.js",
   "type": "commonjs",
   "dependencies": {
-    "ws": "8.18.0"
+    "ws": "8.22.1"
   }
 }

@@ -15,6 +15,7 @@ aplicación cerrada: si está abierta, sobrescribe los cambios al salir.
 """
 import json
 import os
+import shutil
 
 from . import actions, images
 from .constants import KEY_COLUMNS, DIAL_FONT_SIZE, PROFILE_VERSION
@@ -75,13 +76,39 @@ class PageWriter:
         write_json(os.path.join(d, "manifest.json"), manifest)
 
 
+def _remove(path):
+    if os.path.isdir(path):
+        shutil.rmtree(path)
+
+
 def write_profile(layout, out_root, icons_dir, profile_uuid=None):
     """Escribe el perfil descrito por layout y devuelve su carpeta.
 
     Reutilizar profile_uuid reemplaza un perfil existente en lugar de crear otro.
+    El perfil nuevo se escribe primero en una carpeta temporal al lado; solo si
+    todo ha ido bien se borra el antiguo y se pone el nuevo en su lugar. Así un
+    fallo a medias (un icono que no se puede abrir, por ejemplo) no deja al
+    usuario sin su perfil. Se sustituye entero porque las páginas reciben UUID
+    nuevos en cada generación: escribir encima dejaría las antiguas huérfanas.
     """
+    if not layout["pages"]:
+        raise SystemExit("El layout no tiene páginas: un perfil necesita al menos una.")
     profile_uuid = (profile_uuid or new_uuid()).upper()
-    profile_dir = os.path.join(out_root, profile_uuid + ".sdProfile")
+    final_dir = os.path.join(out_root, profile_uuid + ".sdProfile")
+    temp_dir = final_dir + ".tmp"
+    _remove(temp_dir)   # restos de una ejecución anterior que falló
+    try:
+        _write_profile_files(layout, temp_dir, icons_dir)
+    except BaseException:
+        _remove(temp_dir)
+        raise
+    _remove(final_dir)
+    os.replace(temp_dir, final_dir)
+    return final_dir
+
+
+def _write_profile_files(layout, profile_dir, icons_dir):
+    """Escribe todos los archivos del perfil en profile_dir."""
     os.makedirs(os.path.join(profile_dir, "Images"), exist_ok=True)
     page_uuids = [new_uuid() for _ in layout["pages"]]
     default_page = new_uuid()   # página "por defecto" vacía que exige la aplicación
@@ -98,4 +125,3 @@ def write_profile(layout, out_root, icons_dir, profile_uuid=None):
         "Pages": {"Current": page_uuids[0], "Default": default_page, "Pages": page_uuids},
         "Version": PROFILE_VERSION,
     })
-    return profile_dir

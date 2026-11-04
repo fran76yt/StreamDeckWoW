@@ -8,7 +8,11 @@ objetos, macros o el cursor: pasa por estas funciones. Motivos:
   * WoW Forever usa el cliente moderno, donde muchas funciones globales
     clásicas se movieron a espacios de nombres (C_Spell, C_Item, C_SpellBook).
     Si Blizzard vuelve a mover algo, solo hay que tocar este archivo.
-  * Cada función prueba primero la API moderna y cae a la clásica si no existe.
+  * Se usa la API moderna. Donde existe una equivalente clásica (hechizo
+    conocido, número de objetos, metadatos del addon) se usa como respaldo; el
+    resto de funciones de los espacios C_* devuelve nil si no existe, en lugar
+    de dar un error de Lua. Las de macros, cursor y jugador (GetMacroInfo,
+    GetCursorInfo, UnitClass...) existen en todos los clientes y se usan tal cual.
   * Para probar el addon fuera del juego basta con simular estas funciones.
 ]]
 
@@ -16,6 +20,18 @@ local _, ns = ...
 
 local Api = {}
 ns.Api = Api
+
+-- Función de un espacio de nombres de la API (C_Spell, C_Item...), o nil si el
+-- espacio o la función no existen en este cliente.
+local function apiFunction(namespace, name)
+    return namespace and namespace[name]
+end
+
+-- Llama a una función de la API si existe; si no, devuelve nil.
+local function call(namespace, name, ...)
+    local f = apiFunction(namespace, name)
+    if f then return f(...) end
+end
 
 --------------------------------------------------------------------------------
 -- Addon
@@ -51,24 +67,25 @@ end
 --------------------------------------------------------------------------------
 
 function Api.IsSpellKnown(id)
-    if C_SpellBook and C_SpellBook.IsSpellKnown and C_SpellBook.IsSpellKnown(id) then return true end
+    if call(C_SpellBook, "IsSpellKnown", id) then return true end
     if IsPlayerSpell and IsPlayerSpell(id) then return true end
     return IsSpellKnown and IsSpellKnown(id) or false
 end
 
 function Api.SpellName(id)
-    return C_Spell.GetSpellName(id)
+    return call(C_Spell, "GetSpellName", id)
 end
 
 -- ID del archivo de icono (un número, no una ruta).
 function Api.SpellIcon(id)
-    return C_Spell.GetSpellTexture(id)
+    return call(C_Spell, "GetSpellTexture", id)
 end
 
--- Busca un hechizo por nombre. Solo encuentra los que están en tu libro de
--- hechizos, que es justo lo que queremos. Devuelve id, nombre e icono.
+-- Busca un hechizo por nombre. Devuelve id, nombre e icono. Sin verificar en
+-- Forever: en el cliente moderno la búsqueda por nombre solo encuentra los
+-- hechizos de tu libro, que es justo lo que queremos.
 function Api.FindSpellByName(name)
-    local info = C_Spell.GetSpellInfo(name)
+    local info = call(C_Spell, "GetSpellInfo", name)
     if info and info.name then
         return info.spellID, info.name, info.iconID
     end
@@ -80,19 +97,37 @@ end
 
 -- Unidades que lleva el jugador en las bolsas.
 function Api.ItemCount(id)
-    local f = (C_Item and C_Item.GetItemCount) or GetItemCount
+    local f = apiFunction(C_Item, "GetItemCount") or GetItemCount
     return f and f(id) or 0
 end
 
--- Nombre del objeto. Si el cliente aún no lo tiene en caché el nombre llega
--- vacío; entonces usamos el "item string" (item:6948), que las funciones de
--- asignación también aceptan.
+-- Objetos cuyos datos se han pedido al servidor y aún no han llegado.
+local pendingItems = {}
+
+-- Nombre del objeto y si ya está cargado. Si el cliente aún no lo tiene en
+-- caché, GetItemNameByID devuelve nil: se pide al servidor (la respuesta llega
+-- con GET_ITEM_INFO_RECEIVED) y mientras tanto se devuelve el "item string"
+-- (item:6948), que sirve para asignar el atajo pero no para enseñarlo.
+-- Sin verificar: que SetOverrideBindingItem acepte "item:N" en Forever.
 function Api.ItemName(id)
-    return (C_Item.GetItemNameByID and C_Item.GetItemNameByID(id)) or ("item:" .. id)
+    local name = call(C_Item, "GetItemNameByID", id)
+    if name then return name, true end
+    pendingItems[id] = true
+    call(C_Item, "RequestLoadItemDataByID", id)
+    return "item:" .. id, false
+end
+
+-- true si los datos de este objeto los había pedido el addon (y deja de
+-- esperarlos). Sirve para reaccionar solo a las respuestas propias: el evento
+-- llega también por cualquier objeto que cargue el cliente (tooltips, chat...).
+function Api.TakePendingItem(id)
+    if not pendingItems[id] then return false end
+    pendingItems[id] = nil
+    return true
 end
 
 function Api.ItemIcon(id)
-    return C_Item.GetItemIconByID and C_Item.GetItemIconByID(id)
+    return call(C_Item, "GetItemIconByID", id)
 end
 
 --------------------------------------------------------------------------------
@@ -115,11 +150,13 @@ end
 -- Las macros se guardan por nombre porque su índice cambia al borrar otras.
 
 local cursorReaders = {
-    spell = function(bookSlot, _, spellID)
+    spell = function(bookSlot, bank, spellID)
         -- En el cliente moderno el ID llega directamente; si no, se obtiene a
-        -- partir de la posición en el libro de hechizos.
-        if not spellID and C_SpellBook and C_SpellBook.GetSpellBookItemInfo then
-            local info = C_SpellBook.GetSpellBookItemInfo(bookSlot, Enum.SpellBookSpellBank.Player)
+        -- partir de la posición en el libro (del jugador o de la mascota, según
+        -- el banco que indique el cursor).
+        if not spellID then
+            local book = (type(bank) == "number" and bank) or (Enum and Enum.SpellBookSpellBank and Enum.SpellBookSpellBank.Player)
+            local info = call(C_SpellBook, "GetSpellBookItemInfo", bookSlot, book)
             spellID = info and info.spellID
         end
         return spellID and { kind = "spell", id = spellID }
@@ -141,7 +178,8 @@ function Api.CursorEntry()
     return read and read(a, b, c) or nil
 end
 
-function Api.HasCursorItem()
+-- true si el jugador lleva algo en el cursor, sea lo que sea.
+function Api.HasCursorContent()
     return GetCursorInfo() ~= nil
 end
 

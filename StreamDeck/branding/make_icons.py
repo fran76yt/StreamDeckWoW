@@ -20,12 +20,10 @@ from draw import icon, mono_icon, resized  # noqa: E402
 
 
 def save(im, path):
+    # Para el .tga del addon: Pillow lo guarda sin comprimir y en RGBA (32 bits),
+    # que es lo que lee WoW; las medidas tienen que ser potencia de 2 (64).
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    if path.lower().endswith(".tga"):
-        # WoW lee TGA de 32 bits sin comprimir; las medidas deben ser potencia de 2.
-        im.save(path, compression=None)
-    else:
-        im.save(path)
+    im.save(path)
 
 
 def preview(images, path):
@@ -56,7 +54,9 @@ def main():
         written.append(im)
         print(f"{size:>4}px  {kind:<5}  {path}")
     if args.preview:
-        preview(sorted(written, key=lambda im: -im.width)[:1] + written, args.preview)
+        # De mayor a menor, para revisar primero el detalle y después cómo
+        # aguanta cada tamaño pequeño.
+        preview(sorted(written, key=lambda im: -im.width), args.preview)
 
 
 if __name__ == "__main__":

@@ -16,7 +16,8 @@
  *      para dirigirle los mensajes.
  *
  * Esta clase emite cada mensaje recibido como un evento con su nombre
- * (sd.on("keyDown", msg => ...)), además de "connected" y "closed".
+ * (sd.on("keyDown", msg => ...)), además de "connected", "closed" y
+ * "connectionError" (fallo del WebSocket o mensaje que no es JSON).
  */
 
 const { EventEmitter } = require("events");
@@ -44,9 +45,15 @@ class StreamDeck extends EventEmitter {
       this.emit("connected");
     });
     this.ws.on("message", (raw) => {
-      const msg = JSON.parse(raw);
+      let msg;
+      try { msg = JSON.parse(raw); } catch (e) { return this.emit("connectionError", e); }
       this.emit(msg.event, msg);
     });
+    // Un WebSocket que falla emite "error" y, después, "close". Sin un listener,
+    // el "error" se convertiría en una excepción no capturada. Se reemite como
+    // "connectionError" (no como "error", que en un EventEmitter sin listener
+    // también lanza).
+    this.ws.on("error", (e) => this.emit("connectionError", e));
     this.ws.on("close", () => this.emit("closed"));
     return this;
   }

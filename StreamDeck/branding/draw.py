@@ -9,7 +9,7 @@ from PIL import Image, ImageDraw, ImageFilter
 
 from constants import (MASTER_SIZE, BG_TOP, BG_BOTTOM, GOLD_DARK, GOLD, GOLD_LIGHT,
                        KEY_TOP, KEY_BOTTOM, KEY_EDGE, GLYPH, WHITE,
-                       CORNER_RADIUS, FRAME_WIDTH, FRAME_HIGHLIGHT_WIDTH,
+                       CORNER_RADIUS, FRAME_WIDTH, FRAME_HIGHLIGHT_WIDTH, FRAME_HIGHLIGHT_ALPHA,
                        GRID_COLUMNS, GRID_ROWS, KEY_SIZE, KEY_GAP, KEY_RADIUS, GLOW_BLUR, LIT_KEYS)
 
 
@@ -83,9 +83,15 @@ def frame(base):
                         outline=GOLD_DARK + (255,), width=FRAME_WIDTH)
     d.rounded_rectangle((half + 3, half + 3, MASTER_SIZE - half - 3, MASTER_SIZE - half - 3), CORNER_RADIUS - 3,
                         outline=GOLD + (255,), width=FRAME_WIDTH - 8)
+    # El filo es semitransparente: se dibuja en una capa aparte y se compone
+    # encima. Dibujado directamente, Pillow escribiría el píxel con su alfa en
+    # lugar de mezclarlo, y el icono quedaría transparente en ese anillo.
+    highlight = layer()
     inner = FRAME_WIDTH + 1
-    d.rounded_rectangle((inner, inner, MASTER_SIZE - inner, MASTER_SIZE - inner), CORNER_RADIUS - FRAME_WIDTH // 2,
-                        outline=GOLD_LIGHT + (200,), width=FRAME_HIGHLIGHT_WIDTH)
+    ImageDraw.Draw(highlight).rounded_rectangle(
+        (inner, inner, MASTER_SIZE - inner, MASTER_SIZE - inner), CORNER_RADIUS - FRAME_WIDTH // 2,
+        outline=GOLD_LIGHT + (FRAME_HIGHLIGHT_ALPHA,), width=FRAME_HIGHLIGHT_WIDTH)
+    base.alpha_composite(highlight)
 
 
 def bolt(box):

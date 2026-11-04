@@ -57,8 +57,4 @@ public static class WowDeckKeys {
         Thread.Sleep(holdMs);
         for (int i = keys.Count - 1; i >= 0; i--) Send(keys[i], KEYUP);
     }
-
-    // Solo para pruebas: deja una tecla pulsada o la suelta.
-    public static void Down(byte vk) { Send(vk, 0); }
-    public static void Up(byte vk) { Send(vk, KEYUP); }
 }

@@ -77,18 +77,25 @@ end
 -- combate lo ejecuta una sola vez al terminar.
 local deferred = {}
 
+function Util.InCombat()
+    return InCombatLockdown()
+end
+
 function Util.OutOfCombat(fn)
-    if not InCombatLockdown() then
+    if not Util.InCombat() then
         fn()
     else
         deferred[fn] = true
     end
 end
 
+-- Al salir de combate se ejecuta lo pendiente. Cada función va protegida: si
+-- una falla, WoW muestra el error con su manejador habitual y las demás se
+-- ejecutan igualmente.
 Util.On("PLAYER_REGEN_ENABLED", function()
     for fn in pairs(deferred) do
         deferred[fn] = nil
-        fn()
+        xpcall(fn, geterrorhandler())
     end
 end)
 

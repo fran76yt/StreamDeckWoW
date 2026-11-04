@@ -6,7 +6,7 @@ __pycache__/
 *.pyc
 
 # Iconos descargados de Wowhead para el generador de perfiles: son arte de
-# Blizzard, no se publican. Se vuelven a descargar desde Wowhead.
+# Blizzard, no se publican. make_profile.py descarga solo los que falten.
 StreamDeck/profile/icons/
 
 # Configuración del equipo para el generador de perfiles (dispositivo, rutas).

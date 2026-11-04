@@ -28,7 +28,7 @@ def wow_icon(icons_dir, name):
     w, h = im.size
     im = im.crop((2, 2, w - 2, h - 2))           # quita el borde negro del icono
     # Lanczos para ampliar y un poco de enfoque para compensar el desenfoque
-    # de ampliar 2,5 veces.
+    # de ampliar casi 3 veces (de 52 a 144 píxeles, tras el recorte).
     im = im.resize((IMAGE_SIZE, IMAGE_SIZE), Image.LANCZOS)
     return im.filter(ImageFilter.UnsharpMask(1.2, 60, 2))
 

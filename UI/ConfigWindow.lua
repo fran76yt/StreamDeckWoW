@@ -2,7 +2,7 @@
 Ventana de configuración (/sdeck config)
 ========================================
 
-Una ventana con los 12 botones de hueco (SlotButton.lua) en dos filas, un
+Una ventana con un botón por hueco (SlotButton.lua), en filas, un
 texto de ayuda y un botón para recargar la interfaz.
 
 Se crea la primera vez que se abre: si el jugador nunca la usa, no consume nada.
@@ -61,6 +61,9 @@ local function createFrame()
     f:SetScript("OnShow", refresh)
     -- Los frames de esta lista se cierran al pulsar Escape (por su nombre global).
     table.insert(UISpecialFrames, UI.FRAME_NAME)
+    -- CreateFrame devuelve el frame ya visible. Lo ocultamos para que quien lo
+    -- crea decida cuándo mostrarlo (y para que OnShow salte al hacerlo).
+    f:Hide()
     return f
 end
 
@@ -72,10 +75,10 @@ local function createTitle(f)
         title = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
         title:SetPoint("TOP", 0, -5)
     end
-    title:SetText(("%s  |cff888888%s|r"):format(UI.TITLE, ns.Api.AddOnVersion()))
+    title:SetText(("%s  %s"):format(UI.TITLE, Util.Colorize(Const.COLOR.DIM, ns.Api.AddOnVersion())))
     local icon = f:CreateTexture(nil, "OVERLAY")
     icon:SetSize(UI.TITLE_ICON_SIZE, UI.TITLE_ICON_SIZE)
-    icon:SetPoint("RIGHT", title, "LEFT", -4, 0)
+    icon:SetPoint("RIGHT", title, "LEFT", -UI.TITLE_ICON_GAP, 0)
     icon:SetTexture(Const.ICON)
 end
 
@@ -89,9 +92,9 @@ end
 
 local function createHelp(f)
     local help = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    help:SetPoint("BOTTOMLEFT", UI.PADDING, 44)
-    help:SetPoint("BOTTOMRIGHT", -UI.PADDING, 44)
-    help:SetText("Los cambios funcionan al momento. Para que la Stream Deck muestre los iconos nuevos hay que recargar la interfaz.")
+    help:SetPoint("BOTTOMLEFT", UI.PADDING, UI.HELP_BOTTOM)
+    help:SetPoint("BOTTOMRIGHT", -UI.PADDING, UI.HELP_BOTTOM)
+    help:SetText("Los cambios funcionan al momento (en combate, al terminar). Para que la Stream Deck muestre los iconos nuevos hay que recargar la interfaz.")
 end
 
 -- ReloadUI hace que WoW escriba las SavedVariables a disco, que es lo que el
@@ -99,8 +102,8 @@ end
 -- carga de un par de segundos), así que lo decide él con un botón.
 local function createReloadButton(f)
     local reload = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
-    reload:SetSize(200, 24)
-    reload:SetPoint("BOTTOM", 0, 14)
+    reload:SetSize(UI.RELOAD_BUTTON_WIDTH, UI.RELOAD_BUTTON_HEIGHT)
+    reload:SetPoint("BOTTOM", 0, UI.RELOAD_BUTTON_BOTTOM)
     reload:SetText("Actualizar Stream Deck")
     reload:SetScript("OnClick", ReloadUI)
 end

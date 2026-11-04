@@ -13,7 +13,15 @@ Estructura:
                tabla -> entrada elegida ({ kind = "spell", id = ... }, etc.)
   slots[n]   "foto" de cada hueco ya resuelto, para el plugin de Stream Deck.
              Solo tipos simples (texto, número, booleano) para que sea fácil
-             de leer desde fuera del juego.
+             de leer desde fuera del juego. Es un contrato con el plugin
+             (bin/lib/slotAction.js); campos:
+               active  true si se puede usar ahora (lo tienes)
+               empty   true si el hueco está vacío (entonces no hay más campos)
+               kind    "spell" | "item" | "macro" (o nil si no hay nada asignable)
+               id      ID de hechizo u objeto, para descargar su icono
+               icon    ID del archivo de icono del juego (lo usa la ventana)
+               name    nombre legible (nil si un objeto aún no ha cargado)
+               short   texto corto para la tecla
   class      clase del personaje, informativa.
   updated    momento de la última actualización (segundos desde 1970).
 ]]

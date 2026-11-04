@@ -34,6 +34,7 @@ class SlotAction {
     this.log = log;
     this.contexts = new Map();   // context de cada tecla visible -> número de hueco
     this.slots = null;           // slots del addon (null = aún no hay datos)
+    this.generation = 0;         // aumenta con cada setData (ver paint)
   }
 
   //--------------------------------------------------------------------------
@@ -63,6 +64,7 @@ class SlotAction {
 
   setData(data) {
     this.slots = (data && data.slots) || null;
+    this.generation++;
     for (const context of this.contexts.keys()) this.paint(context);
   }
 
@@ -95,10 +97,12 @@ class SlotAction {
   async paint(context) {
     const n = this.contexts.get(context);
     if (!n) return;
+    const generation = this.generation;
     const { image, title } = await this.render(n);
-    // La descarga es asíncrona: si mientras tanto la tecla cambió de hueco o
-    // desapareció, no pintamos datos viejos.
-    if (this.contexts.get(context) !== n) return;
+    // La descarga es asíncrona. Si mientras tanto la tecla cambió de hueco o
+    // desapareció, o llegaron datos nuevos (otro /reload), este pintado ya es
+    // viejo: lo descartamos para no pisar el que corresponde a los datos nuevos.
+    if (this.contexts.get(context) !== n || this.generation !== generation) return;
     this.sd.setImage(context, image);
     this.sd.setTitle(context, title);
   }

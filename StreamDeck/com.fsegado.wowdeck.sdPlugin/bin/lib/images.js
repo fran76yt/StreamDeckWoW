@@ -36,7 +36,7 @@ function textImage(text) {
   const s = IMAGE.SIZE;
   return svgToDataUrl(
     `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}"><rect width="${s}" height="${s}" fill="${IMAGE.TEXT_BACKGROUND}"/>` +
-    `<text x="${s / 2}" y="${s * 0.55}" font-family="Segoe UI, Arial" font-size="30" font-weight="bold" fill="${IMAGE.TEXT_COLOR}" text-anchor="middle">${escapeXml(text)}</text></svg>`);
+    `<text x="${s / 2}" y="${s * IMAGE.TEXT_BASELINE}" font-family="Segoe UI, Arial" font-size="${IMAGE.TEXT_FONT_SIZE}" font-weight="bold" fill="${IMAGE.TEXT_COLOR}" text-anchor="middle">${escapeXml(text)}</text></svg>`);
 }
 
 module.exports = { fileToDataUrl, blankImage, textImage };

@@ -1,5 +1,6 @@
 """
-Constantes del formato de perfiles de Stream Deck y de las imágenes.
+Constantes del generador: formato de perfiles de Stream Deck, imágenes, rutas
+donde buscar en el equipo (perfiles de Stream Deck y WoW) y descarga de Wowhead.
 """
 import json
 import os
@@ -14,18 +15,26 @@ with open(_PLUGIN_MANIFEST, encoding="utf-8") as _fh:
 # Perfiles de la aplicación de Stream Deck (formato V3, desde Stream Deck 7.6).
 # Se usan para detectar el dispositivo y los perfiles de destino, y es donde se
 # instala el perfil generado.
-STREAMDECK_PROFILES_DIR = os.path.join(os.environ.get("APPDATA", ""), "Elgato", "StreamDeck", "ProfilesV3")
+# Sin la variable APPDATA se construye a partir de la carpeta del usuario, igual
+# que hace el plugin (bin/lib/constants.js).
+_APPDATA = os.environ.get("APPDATA") or os.path.join(os.path.expanduser("~"), "AppData", "Roaming")
+STREAMDECK_PROFILES_DIR = os.path.join(_APPDATA, "Elgato", "StreamDeck", "ProfilesV3")
 
 # Dónde buscar WoW: mismas unidades y carpetas que el plugin (lib/constants.js).
 WOW_DRIVES = "CDEFGH"
 WOW_INSTALL_BASES = ["Program Files (x86)", "Program Files", "Juegos", "Games", ""]
 
+# Iconos de WoW para las teclas fijas: se descargan de Wowhead la primera vez
+# (son arte de Blizzard y no van en el repositorio).
+WOWHEAD_ICON_URL = "https://wow.zamimg.com/images/wow/icons/large/{name}.jpg"
+WOWHEAD_HEADERS = {"User-Agent": "WoWDeck-profile-generator/" + _plugin["Version"]}
+WOWHEAD_TIMEOUT_S = 15
+
 # Tamaño de imagen de tecla a doble resolución.
 IMAGE_SIZE = 144
 
-# Distribución de la Stream Deck +: 4 columnas x 2 filas de teclas y 4 diales.
+# Distribución de la Stream Deck +: 4 columnas x 2 filas de teclas.
 KEY_COLUMNS = 4
-DIAL_COUNT = 4
 
 # Versión del formato del manifiesto raíz (V3: Stream Deck 7.6 o posterior).
 PROFILE_VERSION = "3.0"

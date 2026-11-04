@@ -15,7 +15,8 @@ class SavedVariablesWatcher extends EventEmitter {
     this.forever = forever;
     this.intervalMs = intervalMs;
     this.log = log;
-    this.current = null;   // { file, mtime } leído por última vez
+    this.current = null;   // { file, mtime } leído bien por última vez
+    this.failed = null;    // { file, mtime } cuya lectura falló (para no repetir el aviso)
     this.timer = null;
   }
 
@@ -29,23 +30,27 @@ class SavedVariablesWatcher extends EventEmitter {
     clearInterval(this.timer);
   }
 
-  // ¿Es el mismo archivo y la misma fecha que la última vez?
-  isUnchanged(sv) {
-    return this.current && sv.file === this.current.file && sv.mtime === this.current.mtime;
+  // ¿Es el mismo archivo y la misma fecha que "ref"?
+  static same(sv, ref) {
+    return Boolean(ref) && sv.file === ref.file && sv.mtime === ref.mtime;
   }
 
   check() {
     const sv = newestSavedVariables(this.forever);
-    if (!sv || this.isUnchanged(sv)) return;
-    this.current = sv;
+    if (!sv || SavedVariablesWatcher.same(sv, this.current)) return;
     try {
       const data = readAddonData(sv.file);
+      // Solo se da por leído cuando la lectura ha ido bien: si falla (por
+      // ejemplo, porque WoW está escribiendo justo en ese momento), se
+      // reintenta en la siguiente comprobación aunque la fecha no cambie.
+      this.current = sv;
+      this.failed = null;
       this.log(`datos de ${sv.character} (${data && data.class})`);
       this.emit("change", data, sv);
     } catch (e) {
-      // Puede pasar si leemos justo mientras WoW escribe. Cuando termina, la
-      // fecha vuelve a cambiar y en la siguiente comprobación se lee completo.
-      this.log("no pude leer", sv.file, e.message);
+      // Se registra una vez por versión del archivo, no en cada reintento.
+      if (!SavedVariablesWatcher.same(sv, this.failed)) this.log("no pude leer", sv.file, e.message);
+      this.failed = sv;
     }
   }
 }

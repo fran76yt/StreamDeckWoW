@@ -18,7 +18,9 @@
 # La descripción va en una sola línea; "|n" es el salto de línea en los textos de WoW.
 ## Notes: Asigna los atajos Ctrl+Alt+Mayús+F1..F12 de la Stream Deck a hechizos, objetos o macros.|n/sdeck config
 ## Author: fsegado
-# Versión del addon. Es la única fuente: el código la lee de aquí (Api.AddOnVersion).
+# Versión del addon. Es la única fuente para el addon: el código la lee de aquí
+# (Api.AddOnVersion). El plugin lleva la suya en su manifest.json; al publicar
+# una versión nueva, súbelas juntas.
 # 0.x mientras sea una versión de pruebas.
 ## Version: 0.1.0
 # Icono de la lista de addons (ruta sin extensión; el archivo es Media\Icon.tga,

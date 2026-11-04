@@ -29,9 +29,12 @@
 la Stream Deck se actualiza al recargar la interfaz.</p>
 <script>
   const sel = document.getElementById("slot");
-  // Debe coincidir con los modificadores que usan plugin.js y el addon.
+  // Esta página corre dentro de la aplicación de Stream Deck, aparte del
+  // plugin, y no puede leer sus constantes: estos dos valores tienen que
+  // coincidir con MODIFIERS y NUM_SLOTS de bin/lib/constants.js (y con el addon).
   const KEYS = "Ctrl+Alt+Mayús+F";
-  for (let n = 1; n <= 12; n++) sel.add(new Option(`${n}  (${KEYS}${n})`, n));
+  const NUM_SLOTS = 12;
+  for (let n = 1; n <= NUM_SLOTS; n++) sel.add(new Option(`${n}  (${KEYS}${n})`, n));
 
   let ws, uuid;
 

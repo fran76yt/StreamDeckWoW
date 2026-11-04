@@ -43,8 +43,10 @@ function findForever(pluginDir) {
 
 // Las SavedVariables por personaje viven en
 //   WTF\Account\<cuenta>\<reino>\<personaje>\SavedVariables\StreamDeckWoW.lua
-// Devuelve la más reciente ({ file, mtime, character }): con varios personajes
-// es la del que acabas de usar. Así un único perfil sirve para todas las clases.
+// Devuelve la guardada más recientemente ({ file, mtime, character }). Así un
+// único perfil sirve para todas las clases. Ojo: WoW escribe el archivo de un
+// personaje al recargar, cerrar sesión o salir, no al entrar; tras cambiar de
+// personaje, hasta que el nuevo haga /reload se sigue viendo el anterior.
 function newestSavedVariables(forever) {
   const accounts = path.join(forever, "WTF", "Account");
   let best = null;

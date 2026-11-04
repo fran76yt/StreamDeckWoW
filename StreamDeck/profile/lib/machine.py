@@ -4,7 +4,8 @@ Datos del equipo donde se genera el perfil.
 Lo que depende de cada usuario (qué Stream Deck tiene y dónde está instalado
 WoW) no va en el código ni en el repositorio. Se obtiene, por orden:
 
-  1. local.json junto a make_profile.py, si existe (no se sube al repositorio;
+  1. local.json (por defecto junto a make_profile.py; otra ruta con --local),
+     si existe (no se sube al repositorio;
      ver local.example.json).
   2. Detección automática:
        - el dispositivo, de los perfiles que ya tiene la aplicación de Stream

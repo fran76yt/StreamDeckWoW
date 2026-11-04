@@ -1,5 +1,5 @@
 {
-  "_comentario": "Copia este archivo como local.json solo si la detección automática no funciona. local.json no se sube al repositorio. Todos los campos son opcionales.",
+  "_comentario": "Copia este archivo como local.json solo si la detección automática no funciona, y BORRA los campos que no necesites: cualquier campo presente sustituye a la detección. local.json no se sube al repositorio.",
   "device": { "Model": "20GBD9901", "UUID": "@(1)[NNNN/NNN/NUMERODESERIE]" },
   "wow_exe": "C:\\Program Files (x86)\\World of Warcraft\\_forever_\\Wow.exe",
   "profiles": { "General": "00000000-0000-0000-0000-000000000000" }

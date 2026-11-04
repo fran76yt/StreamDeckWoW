@@ -11,8 +11,8 @@ Usamos SetOverrideBinding* y no SetBinding*:
     con prioridad sobre los atajos normales. No se guarda en ningún sitio y
     desaparece con ClearOverrideBindings o al desactivar el addon.
 
-Cada vez se rehacen los 12 atajos desde cero: es más simple que calcular
-diferencias y, con 12 huecos, el coste es despreciable.
+Cada vez se rehacen todos los atajos desde cero: es más simple que calcular
+diferencias y, con una docena de huecos, el coste es despreciable.
 ]]
 
 local _, ns = ...
@@ -35,13 +35,14 @@ local binders = {
 -- Lo último asignado a cada hueco (para /sdeck).
 local targets = {}
 
--- Asigna el hueco n y devuelve su foto y si quedó asignado.
+-- Asigna el hueco n y devuelve su foto y si está listo para usarse (asignado y
+-- disponible: hechizo aprendido u objeto en las bolsas).
 local function bindSlot(n)
     local entry = Slots.Entry(n)
     local res = Slots.Resolve(entry)
     if res then binders[res.kind](Keys.For(n), res.target) end
     targets[n] = res and res.target
-    return Slots.Snapshot(entry, res), res ~= nil
+    return Slots.Snapshot(entry, res), res ~= nil and res.available == true
 end
 
 -- Recalcula y asigna todos los huecos, guarda la foto y avisa al resto.
@@ -83,3 +84,11 @@ for _, event in ipairs(Const.REFRESH_EVENTS) do
     Util.On(event, Bindings.RefreshSoon)
 end
 Util.Listen(Const.MSG.SLOT_CHANGED, Bindings.Refresh)
+
+-- Datos de un objeto que el cliente no tenía en caché. Solo se recalcula si lo
+-- había pedido el addon y la carga ha ido bien: si no, cualquier tooltip o
+-- enlace de chat provocaría recálculos, y una carga fallida podría repetirse
+-- en bucle (pedir, fallar, recalcular, volver a pedir...).
+Util.On(Const.ITEM_INFO_EVENT, function(itemID, success)
+    if Api.TakePendingItem(itemID) and success then Bindings.RefreshSoon() end
+end)

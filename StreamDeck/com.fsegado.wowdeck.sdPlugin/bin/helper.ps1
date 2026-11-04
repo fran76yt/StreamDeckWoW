@@ -1,26 +1,38 @@
-# ---------------------------------------------------------------------------
+﻿# ---------------------------------------------------------------------------
 # helper.ps1 - proceso auxiliar del plugin WoW Deck
 #
 # lib/helper.js lo arranca una vez y lo mantiene abierto. Se comunican por
-# líneas de texto: una orden por línea en la entrada estándar y una respuesta
-# por línea en la salida ("OK ..." o "ERR ...").
+# líneas de texto en UTF-8: una orden por línea en la entrada estándar y una
+# respuesta por línea en la salida. Al arrancar escribe "READY"; después, una
+# respuesta por orden: "OK <orden>" o "ERR <motivo>".
 #
-#   KEYS 17,18,16,112       Pulsa las teclas (códigos VK de Windows) en ese
-#                           orden y las suelta en orden inverso: Ctrl+Alt+Mayús+F1.
-#                           Los modificadores que el jugador ya mantenga
-#                           pulsados con la mano no se tocan.
-#   DIM <entrada>|<salida>  Guarda una copia gris y oscurecida de una imagen
-#                           (para huecos que el personaje aún no tiene).
+#   KEYS 17,18,16,112             Pulsa las teclas (códigos VK de Windows) en ese
+#                                 orden y las suelta en orden inverso:
+#                                 Ctrl+Alt+Mayús+F1. Los modificadores que el
+#                                 jugador ya mantenga pulsados con la mano no se tocan.
+#   DIM <entrada>|<salida>|<lado> Guarda una copia gris y oscurecida de una
+#                                 imagen, de <lado> x <lado> píxeles (para huecos
+#                                 que el personaje aún no tiene).
 #
 # Por qué PowerShell y no Node: simular teclado necesita llamar a user32.dll.
 # Desde Node habría que usar un módulo nativo compilado para cada versión;
 # PowerShell viene con Windows y puede compilar un poco de C# al vuelo.
 # ---------------------------------------------------------------------------
 
+# Cualquier error, también los "no terminantes" de los cmdlets, debe llegar al
+# catch del bucle y responderse como ERR, nunca como un OK falso.
+$ErrorActionPreference = 'Stop'
+
+# Node escribe y lee en UTF-8. Windows PowerShell 5.1 usaría por defecto la
+# página de códigos de la consola (850 en un Windows en español) y rompería las
+# rutas con tildes (C:\Users\José\...).
+$Utf8 = New-Object System.Text.UTF8Encoding $false
+[Console]::InputEncoding = $Utf8
+[Console]::OutputEncoding = $Utf8
+
 # --- Constantes -------------------------------------------------------------
-$ImageSize = 144        # tamaño de tecla a doble resolución
-$KeyHoldMs = 30         # cuánto se mantiene pulsada la tecla
-$DimFactor = 0.4        # brillo de los iconos atenuados
+$KeyHoldMs = 30                 # cuánto se mantiene pulsada la tecla
+$DimFactor = 0.4                # brillo de los iconos atenuados
 $Luminance = @(0.3, 0.6, 0.1)   # peso de R, G y B al pasar a gris
 
 # --- Teclado ----------------------------------------------------------------
@@ -46,21 +58,30 @@ function New-DimMatrix {
     return $m
 }
 
+# Libera los objetos GDI que existan. Hay que hacerlo explícitamente: si no, el
+# archivo de entrada queda bloqueado hasta que actúe el recolector de basura.
+function Close-Graphics([object[]]$objects) {
+    foreach ($o in $objects) { if ($o) { $o.Dispose() } }
+}
+
 function Invoke-Dim([string]$arg) {
     # Las rutas se separan con "|" porque pueden contener espacios.
-    $in, $out = $arg -split '\|'
-    $src = [System.Drawing.Image]::FromFile($in)
-    $bmp = New-Object System.Drawing.Bitmap $ImageSize, $ImageSize
-    $g = [System.Drawing.Graphics]::FromImage($bmp)
-    $g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
-    $attr = New-Object System.Drawing.Imaging.ImageAttributes
-    $attr.SetColorMatrix((New-DimMatrix))
-    $g.DrawImage($src, (New-Object System.Drawing.Rectangle 0, 0, $ImageSize, $ImageSize), 0, 0, $src.Width, $src.Height, [System.Drawing.GraphicsUnit]::Pixel, $attr)
-    # Liberamos los objetos GDI explícitamente: si no, el archivo de entrada
-    # queda bloqueado hasta que actúe el recolector de basura.
-    $g.Dispose(); $src.Dispose()
-    $bmp.Save($out, [System.Drawing.Imaging.ImageFormat]::Png)
-    $bmp.Dispose()
+    $in, $out, $size = $arg -split '\|'
+    $size = [int]$size
+    $src = $null; $bmp = $null; $g = $null; $attr = $null
+    try {
+        $src = [System.Drawing.Image]::FromFile($in)
+        $bmp = New-Object System.Drawing.Bitmap $size, $size
+        $g = [System.Drawing.Graphics]::FromImage($bmp)
+        $g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+        $attr = New-Object System.Drawing.Imaging.ImageAttributes
+        $attr.SetColorMatrix((New-DimMatrix))
+        $g.DrawImage($src, (New-Object System.Drawing.Rectangle 0, 0, $size, $size), 0, 0, $src.Width, $src.Height, [System.Drawing.GraphicsUnit]::Pixel, $attr)
+        Close-Graphics @($g, $src); $g = $null; $src = $null
+        $bmp.Save($out, [System.Drawing.Imaging.ImageFormat]::Png)
+    } finally {
+        Close-Graphics @($g, $src, $bmp, $attr)
+    }
 }
 
 # --- Bucle de órdenes -------------------------------------------------------
@@ -90,7 +111,8 @@ while (($line = [Console]::In.ReadLine()) -ne $null) {
         [Console]::Out.WriteLine((Invoke-Line $line))
     } catch {
         # Siempre una respuesta por orden, también si falla, para que la cola
-        # de respuestas del plugin no se desincronice.
-        [Console]::Out.WriteLine("ERR $($_.Exception.Message)")
+        # de respuestas del plugin no se desincronice. Sin saltos de línea: el
+        # plugin lee línea a línea.
+        [Console]::Out.WriteLine("ERR " + ($_.Exception.Message -replace '\s+', ' '))
     }
 }

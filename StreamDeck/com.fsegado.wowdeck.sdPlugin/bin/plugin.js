@@ -22,7 +22,7 @@
  *   tecla pulsada --> slotAction --> helper --(Ctrl+Alt+Mayús+Fn)--> juego --> addon
  */
 
-const { VERSION, ACTION_SLOT, PATHS, POLL_MS } = require("./lib/constants");
+const { VERSION, ACTION_SLOT, PATHS, LOG_MAX_BYTES, POLL_MS, FOREVER_RETRY_MS, IMAGE } = require("./lib/constants");
 const { createLogger } = require("./lib/log");
 const { StreamDeck } = require("./lib/streamdeck");
 const { Helper } = require("./lib/helper");
@@ -31,22 +31,38 @@ const { findForever } = require("./lib/wow");
 const { SavedVariablesWatcher } = require("./lib/watcher");
 const { SlotAction } = require("./lib/slotAction");
 
-const log = createLogger(PATHS.LOG);
+const log = createLogger(PATHS.LOG, LOG_MAX_BYTES);
+
+// Cualquier error no previsto queda en el registro en lugar de tumbar el
+// plugin. Se registra lo antes posible, para cubrir también el arranque.
+process.on("uncaughtException", (e) => log("error:", e.stack || e.message));
+process.on("unhandledRejection", (e) => log("error:", (e && e.stack) || e));
+
 const sd = new StreamDeck();
 const helper = new Helper(PATHS.HELPER, log);
 const icons = new IconCache({
   dir: PATHS.ICON_DIR,
   namesFile: PATHS.ICON_NAMES,
-  dim: (input, output) => helper.dimImage(input, output),
+  size: IMAGE.SIZE,
+  dim: (input, output, size) => helper.dimImage(input, output, size),
 });
 const slotAction = new SlotAction({ sd, icons, press: (vks) => helper.pressKeys(vks), log });
 
 // Solo atendemos los mensajes de nuestra acción.
 const forSlots = (handler) => (msg) => { if (msg.action === ACTION_SLOT) handler(msg); };
 
+// Busca la carpeta de WoW Forever y empieza a vigilarla. Si aún no existe
+// (por ejemplo, el juego nunca se ha abierto y no hay carpeta WTF), lo vuelve
+// a intentar cada cierto tiempo en lugar de rendirse hasta reiniciar Stream Deck.
+let warnedNoForever = false;
 function startWatching() {
   const forever = findForever(__dirname);
-  if (!forever) return log("no encuentro la carpeta _forever_ de WoW");
+  if (!forever) {
+    if (!warnedNoForever) log("no encuentro la carpeta _forever_ de WoW; lo seguiré intentando");
+    warnedNoForever = true;
+    setTimeout(startWatching, FOREVER_RETRY_MS);
+    return;
+  }
   log("WoW Forever en", forever);
   new SavedVariablesWatcher(forever, POLL_MS, log)
     .on("change", (data) => slotAction.setData(data))
@@ -65,10 +81,8 @@ sd.on("keyDown", forSlots((m) => slotAction.onKeyDown(m)));
 
 // Stream Deck cierra el socket al salir o al desactivar el plugin: terminamos
 // (y con nosotros el helper, que se cierra al perder su entrada estándar).
+// Si la conexión falla, primero llega el error y después el cierre.
+sd.on("connectionError", (e) => log("error de conexión con Stream Deck:", e.message));
 sd.on("closed", () => { log("Stream Deck cerró la conexión"); process.exit(0); });
-
-// Cualquier error no previsto queda en el registro en lugar de tumbar el plugin.
-process.on("uncaughtException", (e) => log("error:", e.stack || e.message));
-process.on("unhandledRejection", (e) => log("error:", (e && e.stack) || e));
 
 sd.connect();

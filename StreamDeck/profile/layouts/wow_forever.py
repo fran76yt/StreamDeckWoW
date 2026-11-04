@@ -2,17 +2,20 @@
 Perfil "WoW Forever" para una Stream Deck +, común a todas las clases.
 
 Solo datos. Las teclas se listan por filas (4 por fila, 2 filas por página).
-Los huecos (slot) los pinta el plugin según lo configurado en el juego para
-el personaje con el que se ha entrado; el resto son atajos fijos del propio WoW.
+Los huecos (slot) los pinta el plugin según lo configurado en el juego (ver
+"name" más abajo); el resto son atajos fijos del propio WoW.
 Los diales de mascota usan la barra de mascota del juego, así que solo hacen
-algo con clases que tienen mascota (cazador, brujo).
+algo con clases que tienen mascota (cazador, brujo). Las posiciones de la barra
+(1 atacar, 2 seguir, 3 quieto, 8 agresivo, 9 defensivo, 10 pasivo) son las del
+WoW clásico, en el que se basa Forever; sin verificar en Forever.
 """
 from lib.keys import key
 from lib.spec import slot, hotkey, next_page, prev_page, dial, wow, rest
 
 LAYOUT = {
     # Un solo perfil para todas las clases: el plugin pinta los huecos según
-    # el personaje con el que se haya entrado por última vez.
+    # el último personaje que guardó sus SavedVariables (al recargar, cerrar
+    # sesión o salir del juego).
     "name": "WoW Forever",
 
     # "Smart profile": se activa cuando el Wow.exe de esta versión del juego
