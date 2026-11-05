@@ -5,6 +5,7 @@ Comandos de chat
   /sdeck           estado de todas las teclas (igual que /sdeck estado)
   /sdeck estado    estado de todas las teclas
   /sdeck config    abrir o cerrar la ventana de configuración
+  /sdeck minimapa  ocultar o mostrar el botón del minimapa
   /sdeck ayuda     versión y lista de comandos (también con cualquier otro texto)
 
 Cada subcomando es una función en la tabla "commands": añadir uno nuevo es
@@ -73,10 +74,16 @@ function commands.config()
     ns.ConfigWindow.Toggle()
 end
 
+function commands.minimapa()
+    local shown = ns.MinimapButton.ToggleShown()
+    Util.Print(shown and "botón del minimapa visible." or "botón del minimapa oculto. /sdeck minimapa para recuperarlo.")
+end
+
 function commands.ayuda()
     Util.Print("versión %s. Comandos:", ns.Api.AddOnVersion())
     print("  /sdeck  -  estado de las teclas (también /sdeck estado)")
-    print("  /sdeck config  -  configurar los huecos")
+    print("  /sdeck config  -  configurar los huecos (también con clic en el botón del minimapa)")
+    print("  /sdeck minimapa  -  ocultar o mostrar el botón del minimapa")
     print("  /sdeck ayuda  -  esta ayuda")
 end
 
@@ -86,11 +93,18 @@ commands[""] = commands.estado
 --------------------------------------------------------------------------------
 -- Registro del comando
 --------------------------------------------------------------------------------
--- WoW registra comandos con la convención SLASH_<NOMBRE>1 + SlashCmdList.<NOMBRE>.
--- Un subcomando desconocido muestra la ayuda.
-SLASH_STREAMDECKWOW1 = "/sdeck"
-SlashCmdList.STREAMDECKWOW = function(msg)
+-- Ejecuta el subcomando escrito tras /sdeck. Un subcomando desconocido
+-- muestra la ayuda. Se publica en ns para que otras partes de la interfaz
+-- (el botón del minimapa) lancen los mismos comandos sin repetir su código.
+local Commands = {}
+ns.Commands = Commands
+
+function Commands.Run(msg)
     local name = (msg or ""):match("^%s*(%S*)"):lower()
     local run = commands[name] or commands.ayuda
     run()
 end
+
+-- WoW registra comandos con la convención SLASH_<NOMBRE>1 + SlashCmdList.<NOMBRE>.
+SLASH_STREAMDECKWOW1 = "/sdeck"
+SlashCmdList.STREAMDECKWOW = Commands.Run

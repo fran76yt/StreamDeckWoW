@@ -104,3 +104,24 @@ Const.UI = {
     TOOLTIP_WARNING_COLOR = { 1, 0.4, 0.4 },
     TOOLTIP_HELP_COLOR = { 0.8, 0.8, 0.8 },
 }
+
+-- Botón del minimapa. Las medidas y texturas son las del aro estándar que usan
+-- los botones de minimapa de casi todos los addons, para que no desentone.
+-- Las posiciones son píxeles desde la esquina superior izquierda del botón.
+Const.MINIMAP = {
+    BUTTON_NAME = "StreamDeckWoWMinimapButton",   -- nombre global (otros addons de minimapa lo reconocen)
+    DEFAULT_ANGLE = 225,     -- grados desde la derecha, en sentido antihorario: abajo a la izquierda
+    EDGE_OFFSET = 5,         -- cuánto sobresale el botón del borde del minimapa
+    FRAME_LEVEL = 8,         -- por encima de los iconos del propio minimapa
+    SIZE = 31,
+    BORDER_SIZE = 53,
+    BORDER_TEXTURE = "Interface\\Minimap\\MiniMap-TrackingBorder",
+    BACKGROUND_SIZE = 20,
+    BACKGROUND_OFFSET = { 7, -5 },
+    BACKGROUND_TEXTURE = "Interface\\Minimap\\UI-Minimap-Background",
+    ICON_SIZE = 17,
+    ICON_OFFSET = { 7, -6 },
+    -- Máscara circular para que el icono (cuadrado) encaje en el aro.
+    ICON_MASK = "Interface\\CharacterFrame\\TempPortraitAlphaMask",
+    HIGHLIGHT_TEXTURE = "Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight",
+}

@@ -24,6 +24,10 @@ Estructura:
                short   texto corto para la tecla
   class      clase del personaje, informativa.
   updated    momento de la última actualización (segundos desde 1970).
+  minimap    preferencias del botón del minimapa (el plugin no las lee):
+               angle   posición alrededor del minimapa, en grados
+                       (nil -> la de por defecto)
+               hidden  true si el jugador lo ha ocultado con /sdeck minimapa
 ]]
 
 local _, ns = ...
@@ -58,4 +62,12 @@ end
 function Storage.GetSnapshot(n)
     local slots = db().slots
     return slots and slots[n]
+end
+
+-- Devuelve la tabla misma (no una copia): quien la recibe la modifica y WoW la
+-- guardará con el resto al escribir las SavedVariables.
+function Storage.GetMinimap()
+    local d = db()
+    d.minimap = d.minimap or {}
+    return d.minimap
 end

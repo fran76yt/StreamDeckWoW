@@ -51,5 +51,6 @@ Core\Bindings.lua
 #   Interfaz
 UI\SlotButton.lua
 UI\ConfigWindow.lua
+UI\MinimapButton.lua
 #   Comandos de chat (usa todo lo anterior)
 Core\Commands.lua

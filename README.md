@@ -140,15 +140,15 @@ Hay un matiz: WoW escribe el archivo de un personaje al recargar la interfaz, ce
 
 ## 4. El addon por dentro
 
-Todos los archivos del addon reciben la misma tabla privada (`local _, ns = ...`), que hace de espacio de nombres compartido sin llenar el espacio global, donde podría chocar con otros addons. Las únicas globales son las que exige WoW (el comando `SLASH_STREAMDECKWOW1` y el nombre de la ventana, `StreamDeckWoWConfig`, para cerrarla con Escape) y `StreamDeckWoW`, que expone esa tabla para inspeccionarla en el juego con `/dump`. Cada módulo se cuelga de ella (`ns.Slots`, `ns.Bindings`…) y usa los que se han cargado antes.
+Todos los archivos del addon reciben la misma tabla privada (`local _, ns = ...`), que hace de espacio de nombres compartido sin llenar el espacio global, donde podría chocar con otros addons. Las únicas globales son las que exige WoW (el comando `SLASH_STREAMDECKWOW1`, el nombre de la ventana, `StreamDeckWoWConfig`, para cerrarla con Escape, y el del botón del minimapa, `StreamDeckWoWMinimapButton`, que reconocen los addons que ordenan los botones del minimapa) y `StreamDeckWoW`, que expone esa tabla para inspeccionarla en el juego con `/dump`. Cada módulo se cuelga de ella (`ns.Slots`, `ns.Bindings`…) y usa los que se han cargado antes.
 
 | Archivo | Responsabilidad |
 |---|---|
-| [`Core/Constants.lua`](Core/Constants.lua) | Todos los valores fijos: número de huecos, modificadores del atajo, eventos, colores, medidas de la ventana |
+| [`Core/Constants.lua`](Core/Constants.lua) | Todos los valores fijos: número de huecos, modificadores del atajo, eventos, colores, medidas de la ventana y del botón del minimapa |
 | [`Core/Util.lua`](Core/Util.lua) | Utilidades genéricas, reutilizables en otros addons (solo dependen de las constantes): suscripción a eventos, mensajes entre módulos, *debounce*, ejecutar fuera de combate, escribir en el chat |
 | [`Core/Keys.lua`](Core/Keys.lua) | Traduce un hueco a su atajo (`ALT-CTRL-SHIFT-F3`) y a su texto legible (`Ctrl+Alt+Mayús+F3`) |
 | [`Core/Api.lua`](Core/Api.lua) | Única puerta a la API del juego para hechizos, objetos, macros, cursor y metadatos. Usa la API moderna (`C_Spell`, `C_Item`, `C_SpellBook`); donde hay una equivalente clásica (hechizo conocido, número de objetos, metadatos) la usa como respaldo, y si falta una función de hechizos u objetos devuelve vacío en lugar de dar un error de Lua (las de macros, cursor y jugador se usan directamente) |
-| [`Core/Storage.lua`](Core/Storage.lua) | Único módulo que toca la variable guardada `StreamDeckWoWChar` |
+| [`Core/Storage.lua`](Core/Storage.lua) | Único módulo que toca la variable guardada `StreamDeckWoWChar` (huecos y posición del botón del minimapa) |
 | [`Defaults/Defaults.lua`](Defaults/Defaults.lua) | Registro de valores por defecto: comunes y por clase |
 | [`Defaults/Common.lua`](Defaults/Common.lua) | Huecos comunes a todas las clases |
 | [`Defaults/Classes/Hunter.lua`](Defaults/Classes/Hunter.lua) | Huecos del cazador |
@@ -156,7 +156,8 @@ Todos los archivos del addon reciben la misma tabla privada (`local _, ns = ...`
 | [`Core/Bindings.lua`](Core/Bindings.lua) | Asigna los atajos y decide cuándo recalcular |
 | [`UI/SlotButton.lua`](UI/SlotButton.lua) | Componente de botón de hueco: icono, arrastrar y soltar, tooltip |
 | [`UI/ConfigWindow.lua`](UI/ConfigWindow.lua) | La ventana `/sdeck config` |
-| [`Core/Commands.lua`](Core/Commands.lua) | Comandos `/sdeck` |
+| [`UI/MinimapButton.lua`](UI/MinimapButton.lua) | El botón del minimapa: abre la ventana, muestra el estado y se puede mover o esconder. Hecho a mano, sin LibDBIcon, para no depender de librerías externas |
+| [`Core/Commands.lua`](Core/Commands.lua) | Comandos `/sdeck`; los publica en `ns.Commands.Run` para que el botón del minimapa los reutilice |
 
 ### Override bindings
 
@@ -293,6 +294,10 @@ StreamDeckWoWChar = {
         }, -- [1]
         -- ... hasta [12]
     },
+    ["minimap"] = {                     -- botón del minimapa (solo para el addon)
+        ["angle"] = 225,                -- posición alrededor del minimapa, en grados
+        ["hidden"] = true,              -- solo si lo has ocultado con /sdeck minimapa
+    },
 }
 ```
 
@@ -308,7 +313,7 @@ Casos de cada hueco en `slots`:
 
 Si el cliente todavía no tiene un objeto en caché, el atajo se asigna con `"item:<id>"`, pero en la foto `name` queda vacío (y `short` también, si el hueco no tiene texto propio) hasta que el servidor envía los datos; `/sdeck` lo muestra como «objeto <id> (cargando datos)».
 
-El plugin solo usa `slots` (y `class`, para su registro). `custom` es para el propio addon.
+El plugin solo usa `slots` (y `class`, para su registro). `custom` y `minimap` son para el propio addon.
 
 ---
 
@@ -417,12 +422,22 @@ Puedes montarlo a mano en la aplicación de Stream Deck: arrastra **Hueco WoW** 
 | Comando | Qué hace |
 |---|---|
 | `/sdeck` o `/sdeck estado` | Lista los 12 huecos: qué tiene asignado cada uno y, en rojo, lo que todavía no tienes. En combate muestra lo último asignado y avisa de que se actualizará al terminar |
-| `/sdeck config` | Abre o cierra la ventana de configuración |
+| `/sdeck config` | Abre o cierra la ventana de configuración (también con clic en el botón del minimapa) |
+| `/sdeck minimapa` | Oculta el botón del minimapa o lo vuelve a mostrar; se recuerda por personaje |
 | `/sdeck ayuda` | Versión del addon y lista de comandos (también sale con cualquier otro texto) |
+
+### Botón del minimapa
+
+Al entrar aparece un botón con el icono del addon en el borde del minimapa (abajo a la izquierda la primera vez):
+
+- **Clic:** abre o cierra la ventana de configuración.
+- **Clic derecho:** el estado de las teclas en el chat, como `/sdeck`.
+- **Arrastrar:** lo mueve alrededor del minimapa. La posición se guarda por personaje, como un ángulo, así que se mantiene aunque cambie el tamaño o la escala del minimapa. Si otro addon hace el minimapa cuadrado (y lo anuncia con `GetMinimapShape`), el botón recorre sus lados.
+- `/sdeck minimapa` lo esconde si molesta, y el mismo comando lo recupera.
 
 ### Ventana de configuración
 
-<p align="center"><code>/sdeck config</code></p>
+<p align="center"><code>/sdeck config</code> o clic en el botón del minimapa</p>
 
 - **Arrastra** un hechizo del libro, un objeto de las bolsas o una macro a un hueco. También vale coger con un clic y soltar con otro, como en las barras de acción. Otras cosas (monturas, acciones de mascota…) no se aceptan.
 - **Clic derecho:** vuelve al valor por defecto.
@@ -493,7 +508,8 @@ StreamDeckWoW/                         ← carpeta del addon (raíz del reposito
 │   └── Classes/Hunter.lua             cazador
 ├── UI/                                interfaz
 │   ├── SlotButton.lua                 botón de hueco
-│   └── ConfigWindow.lua               ventana /sdeck config
+│   ├── ConfigWindow.lua               ventana /sdeck config
+│   └── MinimapButton.lua              botón del minimapa
 ├── Media/Icon.tga                     icono del addon (lista de addons y chat)
 └── StreamDeck/                        todo lo de Stream Deck (WoW no lo carga)
     ├── com.fsegado.wowdeck.sdPlugin/  el plugin
