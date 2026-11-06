@@ -24,7 +24,7 @@ El proyecto tiene tres piezas que trabajan juntas:
 | **Plugin WoW Deck** | Plugin de Stream Deck que pinta cada tecla con el icono correcto y envía el atajo al pulsarla | [`StreamDeck/com.fsegado.wowdeck.sdPlugin`](StreamDeck/com.fsegado.wowdeck.sdPlugin) |
 | **Perfil «WoW Forever»** | Perfil de Stream Deck + que se activa solo al poner WoW en primer plano | Se genera con [`StreamDeck/profile`](StreamDeck/profile) |
 
-> **Estado:** versión **0.1.0**, en pruebas. Probado con WoW Forever 1.60.1 (la lista de addons lo acepta sin marcarlo como incompatible) y Stream Deck 7.6.1. Todo el flujo está probado con una API del juego simulada; la prueba completa dentro del mundo está pendiente.
+> **Estado:** versión **0.1.0**, en pruebas. Probado dentro del juego con WoW Forever 1.60.1 y Stream Deck 7.6.1: el addon carga sin marcarse como incompatible, y el botón del minimapa, la ventana de configuración y las teclas funcionan. Además, cada parte tiene pruebas automáticas sobre una API del juego simulada, que cubren también casos difíciles de provocar a mano (combate, objetos sin cargar, fallos del plugin).
 
 ---
 
