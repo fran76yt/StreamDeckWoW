@@ -110,6 +110,13 @@ function Util.FirstMatch(list, test, build)
     end
 end
 
+-- Invierte un indicador de una tabla y devuelve si queda activado. Guarda nil
+-- en vez de false para que las SavedVariables solo lleven lo que se ha cambiado.
+function Util.ToggleFlag(t, key)
+    t[key] = not t[key] or nil
+    return t[key] == true
+end
+
 -- Texto en color para el chat.
 function Util.Colorize(hex, text)
     return "|cff" .. hex .. text .. "|r"

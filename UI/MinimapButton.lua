@@ -190,8 +190,7 @@ end)
 
 -- Oculta o muestra el botón y lo recuerda. Devuelve true si queda visible.
 function MinimapButton.ToggleShown()
-    local settings = Storage.GetMinimap()
-    settings.hidden = not settings.hidden or nil   -- nil en vez de false: no ensucia el archivo
+    local hidden = Util.ToggleFlag(Storage.GetMinimap(), "hidden")
     if button then applyVisibility() end
-    return not settings.hidden
+    return not hidden
 end

@@ -144,16 +144,17 @@ Todos los archivos del addon reciben la misma tabla privada (`local _, ns = ...`
 
 | Archivo | Responsabilidad |
 |---|---|
-| [`Core/Constants.lua`](Core/Constants.lua) | Todos los valores fijos: número de huecos, modificadores del atajo, eventos, colores, medidas de la ventana y del botón del minimapa |
+| [`Core/Constants.lua`](Core/Constants.lua) | Todos los valores fijos: número de huecos, modificadores del atajo, eventos, colores, medidas de la ventana y del botón del minimapa, y los IDs del taunt de la mascota |
 | [`Core/Util.lua`](Core/Util.lua) | Utilidades genéricas, reutilizables en otros addons (solo dependen de las constantes): suscripción a eventos, mensajes entre módulos, *debounce*, ejecutar fuera de combate, escribir en el chat |
 | [`Core/Keys.lua`](Core/Keys.lua) | Traduce un hueco a su atajo (`ALT-CTRL-SHIFT-F3`) y a su texto legible (`Ctrl+Alt+Mayús+F3`) |
-| [`Core/Api.lua`](Core/Api.lua) | Única puerta a la API del juego para hechizos, objetos, macros, cursor y metadatos. Usa la API moderna (`C_Spell`, `C_Item`, `C_SpellBook`); donde hay una equivalente clásica (hechizo conocido, número de objetos, metadatos) la usa como respaldo, y si falta una función de hechizos u objetos devuelve vacío en lugar de dar un error de Lua (las de macros, cursor y jugador se usan directamente) |
+| [`Core/Api.lua`](Core/Api.lua) | Única puerta a la API del juego para hechizos, objetos, macros, cursor, mascota, tipo de instancia, avisos en pantalla y metadatos. Usa la API moderna (`C_Spell`, `C_Item`, `C_SpellBook`); donde hay una equivalente clásica (hechizo conocido, número de objetos, metadatos) la usa como respaldo, y si falta una función de hechizos u objetos devuelve vacío en lugar de dar un error de Lua (las de macros, cursor, jugador y mascota se usan directamente) |
 | [`Core/Storage.lua`](Core/Storage.lua) | Único módulo que toca la variable guardada `StreamDeckWoWChar` (huecos y posición del botón del minimapa) |
 | [`Defaults/Defaults.lua`](Defaults/Defaults.lua) | Registro de valores por defecto: comunes y por clase |
 | [`Defaults/Common.lua`](Defaults/Common.lua) | Huecos comunes a todas las clases |
 | [`Defaults/Classes/Hunter.lua`](Defaults/Classes/Hunter.lua) | Huecos del cazador |
 | [`Core/Slots.lua`](Core/Slots.lua) | Qué hay en cada hueco: definición, resolución, foto para el plugin |
 | [`Core/Bindings.lua`](Core/Bindings.lua) | Asigna los atajos y decide cuándo recalcular |
+| [`Features/PetTaunt.lua`](Features/PetTaunt.lua) | Aviso del taunt de la mascota: comprueba el lanzamiento automático de Bramido al cambiar de zona, de mascota o al entrar en combate |
 | [`UI/SlotButton.lua`](UI/SlotButton.lua) | Componente de botón de hueco: icono, arrastrar y soltar, tooltip |
 | [`UI/ConfigWindow.lua`](UI/ConfigWindow.lua) | La ventana `/sdeck config` |
 | [`UI/MinimapButton.lua`](UI/MinimapButton.lua) | El botón del minimapa: abre la ventana, muestra el estado y se puede mover o esconder. Hecho a mano, sin LibDBIcon, para no depender de librerías externas |
@@ -298,6 +299,9 @@ StreamDeckWoWChar = {
         ["angle"] = 225,                -- posición alrededor del minimapa, en grados
         ["hidden"] = true,              -- solo si lo has ocultado con /sdeck minimapa
     },
+    ["petTaunt"] = {                    -- aviso del taunt de la mascota (solo para el addon)
+        ["off"] = true,                 -- solo si lo has apagado con /sdeck aviso
+    },
 }
 ```
 
@@ -313,7 +317,7 @@ Casos de cada hueco en `slots`:
 
 Si el cliente todavía no tiene un objeto en caché, el atajo se asigna con `"item:<id>"`, pero en la foto `name` queda vacío (y `short` también, si el hueco no tiene texto propio) hasta que el servidor envía los datos; `/sdeck` lo muestra como «objeto <id> (cargando datos)».
 
-El plugin solo usa `slots` (y `class`, para su registro). `custom` y `minimap` son para el propio addon.
+El plugin solo usa `slots` (y `class`, para su registro). `custom`, `minimap` y `petTaunt` son para el propio addon.
 
 ---
 
@@ -424,6 +428,7 @@ Puedes montarlo a mano en la aplicación de Stream Deck: arrastra **Hueco WoW** 
 | `/sdeck` o `/sdeck estado` | Lista los 12 huecos: qué tiene asignado cada uno y, en rojo, lo que todavía no tienes. En combate muestra lo último asignado y avisa de que se actualizará al terminar |
 | `/sdeck config` | Abre o cierra la ventana de configuración (también con clic en el botón del minimapa) |
 | `/sdeck minimapa` | Oculta el botón del minimapa o lo vuelve a mostrar; se recuerda por personaje |
+| `/sdeck aviso` | Apaga o enciende el aviso del taunt de la mascota; se recuerda por personaje |
 | `/sdeck ayuda` | Versión del addon y lista de comandos (también sale con cualquier otro texto) |
 
 ### Botón del minimapa
@@ -434,6 +439,23 @@ Al entrar aparece un botón con el icono del addon en el borde del minimapa (aba
 - **Clic derecho:** el estado de las teclas en el chat, como `/sdeck`.
 - **Arrastrar:** lo mueve alrededor del minimapa. La posición se guarda por personaje, como un ángulo, así que se mantiene aunque cambie el tamaño o la escala del minimapa. Si otro addon hace el minimapa cuadrado (y lo anuncia con `GetMinimapShape`), el botón recorre sus lados.
 - `/sdeck minimapa` lo esconde si molesta, y el mismo comando lo recupera.
+
+### Aviso del taunt de la mascota
+
+En mazmorras y bandas los enemigos los tiene que mantener el tanque: si la mascota los provoca con **Bramido**, se los quita. En solitario es al revés: conviene que la mascota los provoque para que no vengan a por ti. El addon vigila el lanzamiento automático de Bramido (el borde dorado que gira en la barra de la mascota) y avisa cuando no toca:
+
+| Dónde estás | Bramido automático | Aviso |
+|---|---|---|
+| Mazmorra o banda | Activado | «Bramido de la mascota ACTIVADO en mazmorra o banda: desactívalo…» |
+| Fuera (mundo abierto, campos de batalla…) | Desactivado | «Bramido de la mascota DESACTIVADO fuera de mazmorra: actívalo…» |
+
+- El aviso sale **en el centro de la pantalla**, en el chat y con un sonido. Solo lo ves tú: no se envía a nadie.
+- Se avisa una vez cuando la situación pasa a estar mal: al entrar o salir de una instancia, al invocar la mascota o al cambiar el automático. Si sigue mal, **se repite al entrar en combate**. Cuando lo corriges, una línea en el chat lo confirma.
+- Sin mascota, o con una que no tiene Bramido, no avisa.
+- El addon **no lo cambia por ti**: activar o desactivar el automático de una habilidad de la mascota es una acción protegida que solo puede hacer el jugador. Se cambia con clic derecho en Bramido, en la barra de la mascota. Si quieres hacerlo desde la Stream Deck, crea una macro con `/petautocasttoggle Bramido` y arrástrala a un hueco con `/sdeck config`.
+- `/sdeck aviso` lo apaga si no lo quieres.
+
+Los IDs de los siete rangos de Bramido están en `Const.PET_TAUNT` ([`Core/Constants.lua`](Core/Constants.lua)), junto con los tipos de instancia en los que debe estar desactivado. Sirve para cualquier taunt de mascota: basta con añadir sus IDs a la lista.
 
 ### Ventana de configuración
 
@@ -506,6 +528,8 @@ StreamDeckWoW/                         ← carpeta del addon (raíz del reposito
 │   ├── Defaults.lua                   registro
 │   ├── Common.lua                     todas las clases
 │   └── Classes/Hunter.lua             cazador
+├── Features/                          funciones extra, independientes de las teclas
+│   └── PetTaunt.lua                   aviso del taunt de la mascota
 ├── UI/                                interfaz
 │   ├── SlotButton.lua                 botón de hueco
 │   ├── ConfigWindow.lua               ventana /sdeck config

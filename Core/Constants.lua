@@ -105,6 +105,24 @@ Const.UI = {
     TOOLTIP_HELP_COLOR = { 0.8, 0.8, 0.8 },
 }
 
+-- Aviso del taunt de la mascota (Features/PetTaunt.lua). En mazmorras y bandas
+-- tanquea el tanque: si la mascota provoca, le quita los enemigos. Fuera, en
+-- solitario, interesa lo contrario: que la mascota los aguante.
+Const.PET_TAUNT = {
+    -- Bramido (Growl en inglés), rangos 1 a 7, según Wowhead Forever. La lista
+    -- vale para cualquier taunt de mascota: añadir sus IDs basta (por ejemplo,
+    -- Tormento del abisario del brujo).
+    SPELLS = { 2649, 14916, 14917, 14918, 14919, 14920, 14921 },
+    -- Tipos de instancia (Api.InstanceType) donde debe estar desactivado.
+    OFF_IN = { party = true, raid = true },
+    -- Espera tras cambiar de zona o de mascota antes de comprobar: al salir de
+    -- una pantalla de carga la barra de la mascota tarda un momento en estar lista.
+    CHECK_DELAY = 1,
+    -- Repetir el aviso al entrar en combate si sigue mal (el primero se puede
+    -- perder durante la pantalla de carga o con el chat lleno).
+    REMIND_ON_COMBAT = true,
+}
+
 -- Botón del minimapa. Las medidas y texturas son las del aro estándar que usan
 -- los botones de minimapa de casi todos los addons, para que no desentone.
 -- Las posiciones son píxeles desde la esquina superior izquierda del botón.

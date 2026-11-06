@@ -6,6 +6,7 @@ Comandos de chat
   /sdeck estado    estado de todas las teclas
   /sdeck config    abrir o cerrar la ventana de configuración
   /sdeck minimapa  ocultar o mostrar el botón del minimapa
+  /sdeck aviso     apagar o encender el aviso del taunt de la mascota
   /sdeck ayuda     versión y lista de comandos (también con cualquier otro texto)
 
 Cada subcomando es una función en la tabla "commands": añadir uno nuevo es
@@ -79,11 +80,17 @@ function commands.minimapa()
     Util.Print(shown and "botón del minimapa visible." or "botón del minimapa oculto. /sdeck minimapa para recuperarlo.")
 end
 
+function commands.aviso()
+    local on = ns.PetTaunt.Toggle()
+    Util.Print(on and "aviso del taunt de la mascota encendido." or "aviso del taunt de la mascota apagado. /sdeck aviso para volver a encenderlo.")
+end
+
 function commands.ayuda()
     Util.Print("versión %s. Comandos:", ns.Api.AddOnVersion())
     print("  /sdeck  -  estado de las teclas (también /sdeck estado)")
     print("  /sdeck config  -  configurar los huecos (también con clic en el botón del minimapa)")
     print("  /sdeck minimapa  -  ocultar o mostrar el botón del minimapa")
+    print("  /sdeck aviso  -  apagar o encender el aviso del taunt de la mascota")
     print("  /sdeck ayuda  -  esta ayuda")
 end
 

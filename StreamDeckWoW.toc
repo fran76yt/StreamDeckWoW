@@ -48,6 +48,8 @@ Defaults\Classes\Hunter.lua
 #   Lógica
 Core\Slots.lua
 Core\Bindings.lua
+#   Funciones extra
+Features\PetTaunt.lua
 #   Interfaz
 UI\SlotButton.lua
 UI\ConfigWindow.lua

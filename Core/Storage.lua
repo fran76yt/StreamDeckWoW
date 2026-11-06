@@ -28,6 +28,8 @@ Estructura:
                angle   posición alrededor del minimapa, en grados
                        (nil -> la de por defecto)
                hidden  true si el jugador lo ha ocultado con /sdeck minimapa
+  petTaunt   preferencias del aviso del taunt de la mascota (tampoco las lee):
+               off     true si el jugador lo ha apagado con /sdeck aviso
 ]]
 
 local _, ns = ...
@@ -64,10 +66,19 @@ function Storage.GetSnapshot(n)
     return slots and slots[n]
 end
 
--- Devuelve la tabla misma (no una copia): quien la recibe la modifica y WoW la
--- guardará con el resto al escribir las SavedVariables.
-function Storage.GetMinimap()
+-- Tabla de preferencias de una parte del addon, creada si no existe. Devuelve
+-- la tabla misma (no una copia): quien la recibe la modifica y WoW la guardará
+-- con el resto al escribir las SavedVariables.
+local function section(key)
     local d = db()
-    d.minimap = d.minimap or {}
-    return d.minimap
+    d[key] = d[key] or {}
+    return d[key]
+end
+
+function Storage.GetMinimap()
+    return section("minimap")
+end
+
+function Storage.GetPetTaunt()
+    return section("petTaunt")
 end

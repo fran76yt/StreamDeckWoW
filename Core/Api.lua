@@ -11,8 +11,9 @@ objetos, macros o el cursor: pasa por estas funciones. Motivos:
   * Se usa la API moderna. Donde existe una equivalente clásica (hechizo
     conocido, número de objetos, metadatos del addon) se usa como respaldo; el
     resto de funciones de los espacios C_* devuelve nil si no existe, en lugar
-    de dar un error de Lua. Las de macros, cursor y jugador (GetMacroInfo,
-    GetCursorInfo, UnitClass...) existen en todos los clientes y se usan tal cual.
+    de dar un error de Lua. Las de macros, cursor, jugador y mascota
+    (GetMacroInfo, GetCursorInfo, UnitClass, GetPetActionInfo...) existen en
+    todos los clientes y se usan tal cual.
   * Para probar el addon fuera del juego basta con simular estas funciones.
 ]]
 
@@ -60,6 +61,55 @@ end
 -- devuelve primero el nombre traducido ("Cazador") y después este.
 function Api.PlayerClass()
     return select(2, UnitClass("player"))
+end
+
+-- Tipo de sitio en el que está: "party" (mazmorra), "raid" (banda), "pvp",
+-- "arena", "scenario"... o "none" en el mundo abierto. IsInInstance devuelve
+-- primero si está en una instancia y después el tipo.
+function Api.InstanceType()
+    local inInstance, kind = IsInInstance()
+    return inInstance and kind or "none"
+end
+
+--------------------------------------------------------------------------------
+-- Mascota
+--------------------------------------------------------------------------------
+
+function Api.HasPet()
+    return UnitExists("pet") and true or false
+end
+
+-- Habilidades de la barra de la mascota: { name, spellID, autoCast }.
+-- autoCast es el lanzamiento automático (el borde dorado que gira, que se
+-- cambia con clic derecho en la barra). El ID del hechizo solo llega en el
+-- cliente moderno; en otros es nil y hay que fiarse del nombre.
+function Api.PetActions()
+    local actions = {}
+    for i = 1, NUM_PET_ACTION_SLOTS or 10 do
+        local name, _, _, _, _, autoCastEnabled, spellID = GetPetActionInfo(i)
+        if name then
+            actions[#actions + 1] = { name = name, spellID = spellID, autoCast = autoCastEnabled and true or false }
+        end
+    end
+    return actions
+end
+
+--------------------------------------------------------------------------------
+-- Avisos
+--------------------------------------------------------------------------------
+
+-- Texto grande en el centro de la pantalla, como los avisos de banda. Solo se
+-- ve el jugador: no se envía a nadie.
+function Api.ShowCenterWarning(text)
+    if RaidNotice_AddMessage and RaidWarningFrame then
+        RaidNotice_AddMessage(RaidWarningFrame, text, ChatTypeInfo and ChatTypeInfo.RAID_WARNING)
+    end
+end
+
+function Api.PlayWarningSound()
+    if PlaySound and SOUNDKIT and SOUNDKIT.RAID_WARNING then
+        PlaySound(SOUNDKIT.RAID_WARNING)
+    end
 end
 
 --------------------------------------------------------------------------------
