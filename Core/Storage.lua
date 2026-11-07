@@ -34,6 +34,9 @@ Estructura:
                off     true si el jugador lo ha apagado
                point   posición del recuadro: { punto, punto relativo, x, y }
                        (nil -> la de por defecto)
+               thresholds  umbrales cambiados por el jugador, por tipo:
+                       { arrow = { low = 300, critical = 80 }, bullet = {...} }
+                       (los que no están usan los de Const.AMMO.TYPES)
 ]]
 
 local _, ns = ...

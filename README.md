@@ -157,9 +157,15 @@ Todos los archivos del addon reciben la misma tabla privada (`local _, ns = ...`
 | [`Features/PetTaunt.lua`](Features/PetTaunt.lua) | Aviso del taunt de la mascota: comprueba el lanzamiento automático de Bramido al cambiar de zona, de mascota o al entrar en combate |
 | [`Features/Ammo.lua`](Features/Ammo.lua) | Aviso de munición baja: cuenta las flechas o balas que sirven para el arma a distancia y muestra u oculta el recuadro |
 | [`UI/SlotButton.lua`](UI/SlotButton.lua) | Componente de botón de hueco: icono, arrastrar y soltar, tooltip |
+| [`UI/Tooltip.lua`](UI/Tooltip.lua) | Tooltips de ayuda (título y líneas en gris) que comparten todos los componentes |
 | [`UI/Checkbox.lua`](UI/Checkbox.lua) | Componente de casilla: lee y escribe su estado a través de funciones del módulo que la usa, sin guardar nada por sí misma |
+| [`UI/NumberBox.lua`](UI/NumberBox.lua) | Componente de caja numérica, con el mismo patrón: aplica con Intro o al salir, descarta con Escape y muestra el valor que el módulo acepta |
 | [`UI/NoticeBox.lua`](UI/NoticeBox.lua) | Componente de recuadro de aviso discreto: icono, texto, borde del color del nivel y posición movible que se guarda |
-| [`UI/ConfigWindow.lua`](UI/ConfigWindow.lua) | La ventana `/sdeck config`, con las opciones en una tabla (`OPTIONS`): añadir una casilla es añadir una entrada |
+| [`UI/OptionsPage.lua`](UI/OptionsPage.lua) | Dibuja una página de opciones a partir de filas descritas como datos (casillas, cajas numéricas, títulos de columna, notas) |
+| [`UI/TabBar.lua`](UI/TabBar.lua) | Pestañas bajo la ventana |
+| [`UI/ClassTabs/ClassTabs.lua`](UI/ClassTabs/ClassTabs.lua) | Registro de pestañas por clase |
+| [`UI/ClassTabs/Hunter.lua`](UI/ClassTabs/Hunter.lua) | Pestaña **Cazador**: avisos y umbrales de munición, solo como filas de datos |
+| [`UI/ConfigWindow.lua`](UI/ConfigWindow.lua) | La ventana `/sdeck config`: pestaña **Teclas** con los huecos y, si existe, la de la clase del personaje |
 | [`UI/MinimapButton.lua`](UI/MinimapButton.lua) | El botón del minimapa: abre la ventana, muestra el estado y se puede mover o esconder. Hecho a mano, sin LibDBIcon, para no depender de librerías externas |
 | [`Core/Commands.lua`](Core/Commands.lua) | Comandos `/sdeck`; los publica en `ns.Commands.Run` para que el botón del minimapa los reutilice |
 
@@ -309,6 +315,10 @@ StreamDeckWoWChar = {
     ["ammo"] = {                        -- aviso de munición baja (solo para el addon)
         ["off"] = true,                 -- solo si lo has apagado
         ["point"] = { "CENTER", "CENTER", 0, -160 },   -- solo si has movido el recuadro
+        ["thresholds"] = {              -- solo los umbrales que has cambiado
+            ["arrow"] = { ["low"] = 300, ["critical"] = 80 },
+            ["bullet"] = { ["low"] = 150 },
+        },
     },
 }
 ```
@@ -462,7 +472,7 @@ En mazmorras y bandas los enemigos los tiene que mantener el tanque: si la masco
 - Se avisa una vez cuando la situación pasa a estar mal: al entrar o salir de una instancia, al invocar la mascota o al cambiar el automático. Si sigue mal, **se repite al entrar en combate**. Cuando lo corriges, una línea en el chat lo confirma.
 - Sin mascota, o con una que no tiene Bramido, no avisa.
 - El addon **no lo cambia por ti**: activar o desactivar el automático de una habilidad de la mascota es una acción protegida que solo puede hacer el jugador. Se cambia con clic derecho en Bramido, en la barra de la mascota. Si quieres hacerlo desde la Stream Deck, crea una macro con `/petautocasttoggle Bramido` y arrástrala a un hueco con `/sdeck config`.
-- Se apaga o enciende con la casilla **Avisar del taunt de la mascota (Bramido)** de la ventana de configuración, o con `/sdeck aviso`. Las dos cosas van sincronizadas.
+- Se apaga o enciende con la casilla **Avisar del taunt de la mascota (Bramido)** de la pestaña **Cazador** de `/sdeck config`, o con `/sdeck aviso`. Las dos cosas van sincronizadas.
 
 Los IDs de los siete rangos de Bramido están en `Const.PET_TAUNT` ([`Core/Constants.lua`](Core/Constants.lua)), junto con los tipos de instancia en los que debe estar desactivado. Sirve para cualquier taunt de mascota: basta con añadir sus IDs a la lista.
 
@@ -472,16 +482,19 @@ Un recuadro pequeño con el icono de tu munición y cuántas te quedan, para aco
 
 | Munición | Recuadro |
 |---|---|
-| 200 o más | No aparece |
-| Menos de 200 | Borde ámbar: «Munición baja: 143» |
-| Menos de 50 | Borde rojo: «Munición muy baja: 32» |
+| Por encima del umbral ámbar (200 por defecto) | No aparece |
+| Por debajo del ámbar | Borde ámbar: «Munición baja: 143» |
+| Por debajo del rojo (50 por defecto) | Borde rojo: «Munición muy baja: 32» |
 | Ninguna | Borde rojo: «Sin munición» |
 
 - **Qué cuenta:** la munición equipada, si el cliente tiene esa ranura; si no, todas las flechas (con arco o ballesta) o balas (con arma de fuego) de tus bolsas y carcajes. Las de otro tipo no cuentan: unas balas no sirven para un arco.
 - Solo para cazadores, y solo con un arma que gaste munición: con varita o arma arrojadiza no hay aviso.
 - **Arrástralo** a donde te moleste menos; la posición se guarda por personaje. Al principio está algo por debajo del centro de la pantalla.
-- Se apaga o enciende con la casilla **Avisar de munición baja** de la ventana de configuración, o con `/sdeck municion`.
-- Los umbrales (200 y 50) están en `Const.AMMO` ([`Core/Constants.lua`](Core/Constants.lua)).
+- Se apaga o enciende con la casilla **Avisar de munición baja** de la pestaña **Cazador** de `/sdeck config`, o con `/sdeck municion`.
+- **Los umbrales se configuran por tipo de arma** en la pestaña **Cazador** de `/sdeck config`, porque no es lo mismo un arco que un arma de fuego: una fila para **Arco/ballesta** (flechas) y otra para **Arma de fuego** (balas), cada una con su caja **Ámbar** y **Rojo**. Se aplica con Intro o haciendo clic fuera; Escape deja el valor que había.
+  - El rojo no puede ser mayor que el ámbar: si lo escribes, se ajusta al ámbar; y si bajas el ámbar por debajo del rojo, el rojo baja con él.
+  - **0 en ámbar** apaga el aviso de ese tipo.
+  - Solo se guardan los que cambias; los demás siguen los valores por defecto de `Const.AMMO.TYPES` ([`Core/Constants.lua`](Core/Constants.lua)).
 
 Sin verificar en Forever: si su cliente tiene ranura de munición. Por eso, además, se cuentan las bolsas, que funciona en cualquier caso.
 
@@ -489,12 +502,18 @@ Sin verificar en Forever: si su cliente tiene ranura de munición. Por eso, adem
 
 <p align="center"><code>/sdeck config</code> o clic en el botón del minimapa</p>
 
+La ventana tiene pestañas debajo:
+
+- **Teclas:** los 12 huecos, para todas las clases.
+- **Una pestaña de tu clase**, si la tiene. De momento solo existe **Cazador**, con los avisos del taunt de la mascota y de munición baja y los umbrales de munición por tipo de arma (ver los apartados anteriores). Cada personaje ve solo la de su clase; si su clase no tiene, no salen pestañas.
+
+En la pestaña **Teclas**:
+
 - **Arrastra** un hechizo del libro, un objeto de las bolsas o una macro a un hueco. También vale coger con un clic y soltar con otro, como en las barras de acción. Otras cosas (monturas, acciones de mascota…) no se aceptan.
 - **Clic derecho:** vuelve al valor por defecto.
 - **Mayús + clic derecho:** deja el hueco vacío.
 - Nombre en **dorado** = personalizado; en gris claro = valor por defecto; «vacío» en gris oscuro = hueco vacío.
 - **Icono en gris** = todavía no lo tienes, tanto si es un valor por defecto como si lo has arrastrado tú.
-- Las casillas **Avisar del taunt de la mascota (Bramido)** y **Avisar de munición baja** apagan o encienden esos avisos (ver los apartados anteriores).
 - **Actualizar Stream Deck** recarga la interfaz para que WoW guarde el archivo y la Stream Deck muestre los iconos nuevos.
 
 Los cambios funcionan en el juego **al momento** (si estás en combate, al terminar la pelea); recargar solo hace falta para que la Stream Deck los vea.
@@ -561,9 +580,16 @@ StreamDeckWoW/                         ← carpeta del addon (raíz del reposito
 │   ├── PetTaunt.lua                   aviso del taunt de la mascota
 │   └── Ammo.lua                       aviso de munición baja
 ├── UI/                                interfaz
+│   ├── Tooltip.lua                    tooltips de ayuda compartidos
 │   ├── SlotButton.lua                 botón de hueco
 │   ├── Checkbox.lua                   casilla de opciones
+│   ├── NumberBox.lua                  caja numérica
 │   ├── NoticeBox.lua                  recuadro de aviso discreto
+│   ├── OptionsPage.lua                página de opciones descrita como filas
+│   ├── TabBar.lua                     pestañas de la ventana
+│   ├── ClassTabs/                     una pestaña por clase
+│   │   ├── ClassTabs.lua              registro
+│   │   └── Hunter.lua                 cazador
 │   ├── ConfigWindow.lua               ventana /sdeck config
 │   └── MinimapButton.lua              botón del minimapa
 ├── Media/Icon.tga                     icono del addon (lista de addons y chat)
@@ -612,6 +638,25 @@ StreamDeckWoW/                         ← carpeta del addon (raíz del reposito
 2. Añade la línea `Defaults\Classes\<Clase>.lua` al `.toc`, junto a la del cazador.
 
 Los IDs de hechizos y objetos de Forever se consultan en [Wowhead (Forever)](https://www.wowhead.com/forever). Para las profesiones, lista todos los rangos del más alto al más bajo.
+
+Si la clase tiene opciones propias, dale también su pestaña en la ventana:
+
+1. Crea `UI/ClassTabs/<Clase>.lua` siguiendo el modelo de [`Hunter.lua`](UI/ClassTabs/Hunter.lua). Solo describe las filas; los tipos están en [`UI/OptionsPage.lua`](UI/OptionsPage.lua):
+
+   ```lua
+   local _, ns = ...
+
+   ns.ClassTabs.Register("WARRIOR", {
+       title = "Guerrero",
+       rows = {
+           { kind = "check", label = "…", get = function() … end, set = function(on) … end },
+       },
+   })
+   ```
+
+2. Añade la línea `UI\ClassTabs\<Clase>.lua` al `.toc`, junto a la del cazador.
+
+La lógica de cada opción va en su módulo de `Features/`, con `Util.Switch` si es una opción que se enciende y se apaga.
 
 ### 14.2. Cambiar los atajos
 

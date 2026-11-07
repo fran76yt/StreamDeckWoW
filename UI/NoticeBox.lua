@@ -80,17 +80,6 @@ local function makeMovable(f, opts)
     end)
 end
 
-local function showTooltip(self)
-    local lines = self.opts.tooltip
-    if not lines then return end
-    GameTooltip:SetOwner(self, "ANCHOR_TOP")
-    GameTooltip:SetText(lines[1])
-    for i = 2, #lines do
-        GameTooltip:AddLine(lines[i], unpack(Const.UI.TOOLTIP_HELP_COLOR))
-    end
-    GameTooltip:Show()
-end
-
 local function createContent(f)
     f.icon = f:CreateTexture(nil, "ARTWORK")
     f.icon:SetSize(N.ICON_SIZE, N.ICON_SIZE)
@@ -110,8 +99,7 @@ local function build(box)
     applyBackdrop(f)
     createContent(f)
     makeMovable(f, opts)
-    f:SetScript("OnEnter", showTooltip)
-    f:SetScript("OnLeave", GameTooltip_Hide)
+    ns.Tooltip.Attach(f, opts.tooltip, "ANCHOR_TOP")
     restorePoint(f, opts.settings())
     f:Hide()
     return f

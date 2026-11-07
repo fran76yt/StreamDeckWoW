@@ -113,21 +113,13 @@ local function onClick(_, mouseButton)
     if action then action() end
 end
 
-local TOOLTIP_HELP = {
+local TOOLTIP = {
+    Const.UI.TITLE,
     "Clic: configurar las teclas",
     "Clic derecho: estado de las teclas",
     "Arrastrar: mover este botón",
     "/sdeck minimapa: ocultarlo",
 }
-
-local function showTooltip(self)
-    GameTooltip:SetOwner(self, "ANCHOR_LEFT")
-    GameTooltip:SetText(Const.UI.TITLE)
-    for _, line in ipairs(TOOLTIP_HELP) do
-        GameTooltip:AddLine(line, unpack(Const.UI.TOOLTIP_HELP_COLOR))
-    end
-    GameTooltip:Show()
-end
 
 --------------------------------------------------------------------------------
 -- Construcción
@@ -160,8 +152,7 @@ local function createScripts(b)
     b:SetScript("OnClick", onClick)
     b:SetScript("OnDragStart", onDragStart)
     b:SetScript("OnDragStop", onDragStop)
-    b:SetScript("OnEnter", showTooltip)
-    b:SetScript("OnLeave", GameTooltip_Hide)
+    ns.Tooltip.Attach(b, TOOLTIP, "ANCHOR_LEFT")
 end
 
 local function create()

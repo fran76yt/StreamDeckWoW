@@ -81,7 +81,6 @@ Const.UI = {
     TITLE = "StreamDeck WoW",
     TITLE_ICON_SIZE = 16,
     TITLE_ICON_GAP = 4,     -- separación entre el icono y el texto del título
-    -- Alto sin opciones: ConfigWindow le suma lo que ocupen las casillas.
     HEIGHT = 230,
     PADDING = 20,
     SLOT_SIZE = 44,
@@ -97,13 +96,22 @@ Const.UI = {
     SLOT_BACKGROUND_ALPHA = 0.6,   -- fondo oscuro de cada hueco
     KEY_LABEL_OFFSET = 2,          -- separación del texto "Fn" sobre el hueco
     NAME_OFFSET = -3,              -- separación del nombre bajo el hueco
-    -- Parte de abajo, de abajo arriba: botón de recargar, casillas de opciones
-    -- (una sobre otra) y texto de ayuda. Todo se ancla al borde inferior.
-    HELP_BOTTOM = 44,              -- altura del texto de ayuda sin opciones; sube con ellas
-    CHECK_BOTTOM = 42,             -- altura de la primera casilla desde abajo
-    CHECK_SIZE = 24,               -- alto de cada casilla (y lo que sube la siguiente)
-    OPTIONS_GAP = 4,               -- separación entre las casillas y el texto de ayuda
+    HELP_BOTTOM = 44,              -- altura del texto de ayuda desde abajo
+    -- Pestañas: botones colgando bajo el borde inferior de la ventana, como en
+    -- las ventanas de Blizzard.
+    TAB_WIDTH = 100,
+    TAB_HEIGHT = 24,
+    TAB_GAP = 4,
+    -- Páginas de opciones (pestañas de clase): filas de arriba abajo.
+    PAGE_TOP = -36,                -- primera fila, bajo la barra de título
+    ROW_HEIGHT = 26,
+    CHECK_SIZE = 24,
     CHECK_LABEL_GAP = 2,           -- separación entre la casilla y su texto
+    -- Cajas numéricas, en columnas: x de la izquierda de cada columna.
+    NUMBER_BOX_WIDTH = 44,
+    NUMBER_BOX_HEIGHT = 20,
+    NUMBER_MAX_DIGITS = 4,
+    NUMBER_COLUMNS = { 190, 290 },
     RELOAD_BUTTON_WIDTH = 200,
     RELOAD_BUTTON_HEIGHT = 24,
     RELOAD_BUTTON_BOTTOM = 14,
@@ -135,8 +143,18 @@ Const.PET_TAUNT = {
 -- subclase de objeto del juego, que no dependen del idioma.
 Const.AMMO = {
     CLASSES = { HUNTER = true },   -- solo para quien depende de la munición
-    LOW = 200,                     -- por debajo, recuadro ámbar
-    CRITICAL = 50,                 -- por debajo, recuadro rojo
+    -- Tipos de munición, por su subclase de objeto: 2 flechas, 3 balas. Cada
+    -- uno con sus umbrales por defecto, que el jugador cambia en la ventana:
+    -- por debajo de "low", recuadro ámbar; por debajo de "critical", rojo.
+    -- "key" es el nombre con el que se guardan sus umbrales.
+    TYPES = {
+        [2] = { key = "arrow", label = "Arco/ballesta", low = 200, critical = 50,
+                icon = "Interface\\Icons\\INV_Ammo_Arrow_02" },
+        [3] = { key = "bullet", label = "Arma de fuego", low = 200, critical = 50,
+                icon = "Interface\\Icons\\INV_Ammo_Bullet_02" },
+    },
+    TYPE_ORDER = { 2, 3 },         -- orden en la ventana
+    MAX_THRESHOLD = 9999,          -- tope de los umbrales (cabe en UI.NUMBER_MAX_DIGITS)
     RANGED_SLOT = 18,              -- ranura del arma a distancia
     AMMO_SLOT = 0,                 -- ranura de la munición (en clientes que la tienen)
     WEAPON_CLASS = 2,              -- clase de objeto "arma"
@@ -145,8 +163,6 @@ Const.AMMO = {
     -- ballesta (18) usan flechas (2); armas de fuego (3), balas (3). Las
     -- arrojadizas y las varitas no gastan munición y no aparecen.
     WEAPON_AMMO = { [2] = 2, [18] = 2, [3] = 3 },
-    -- Icono de reserva por tipo de munición, si no queda ninguna para copiar el suyo.
-    ICONS = { [2] = "Interface\\Icons\\INV_Ammo_Arrow_02", [3] = "Interface\\Icons\\INV_Ammo_Bullet_02" },
     CHECK_DELAY = 0.5,             -- agrupa las ráfagas de BAG_UPDATE al disparar o lootear
 }
 

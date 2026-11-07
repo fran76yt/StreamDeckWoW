@@ -52,9 +52,16 @@ Core\Bindings.lua
 Features\PetTaunt.lua
 Features\Ammo.lua
 #   Interfaz
+UI\Tooltip.lua
 UI\SlotButton.lua
 UI\Checkbox.lua
+UI\NumberBox.lua
 UI\NoticeBox.lua
+UI\OptionsPage.lua
+UI\TabBar.lua
+#   Pestañas por clase de la ventana: registro y una por clase
+UI\ClassTabs\ClassTabs.lua
+UI\ClassTabs\Hunter.lua
 UI\ConfigWindow.lua
 UI\MinimapButton.lua
 #   Comandos de chat (usa todo lo anterior)

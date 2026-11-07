@@ -3,15 +3,21 @@ Aviso de munición baja
 ======================
 
 Un recuadro pequeño (UI/NoticeBox.lua) con el icono de la munición y cuántas
-quedan, que aparece cuando bajan de Const.AMMO.LOW (borde ámbar) y se pone rojo
-por debajo de Const.AMMO.CRITICAL. Sin sonido ni texto en el centro de la
+quedan, que aparece cuando bajan del umbral de aviso (borde ámbar) y se pone
+rojo por debajo del umbral crítico. Sin sonido ni texto en el centro de la
 pantalla: es un recordatorio para ir a comprar, no una alarma. Desaparece solo
 en cuanto vuelves a tener suficiente.
+
+Los umbrales van por tipo de munición (flechas para arco y ballesta, balas
+para armas de fuego), porque no se gastan al mismo ritmo ni se compran igual.
+Los valores por defecto están en Const.AMMO.TYPES; el jugador los cambia en la
+pestaña de su clase de /sdeck config. Un umbral de aviso 0 apaga el aviso de
+ese tipo.
 
 Qué munición se cuenta:
   * la que tienes equipada en la ranura de munición, si el cliente la tiene;
   * si no, todas las flechas o balas de las bolsas que sirvan para el arma a
-    distancia que llevas (arco y ballesta, flechas; arma de fuego, balas).
+    distancia que llevas.
 Sin arma que gaste munición (o con varita o arrojadizas) no hay aviso.
 
 Sin verificar en Forever: si su cliente tiene ranura de munición. Por eso se
@@ -24,6 +30,54 @@ local C = Const.AMMO
 
 local Ammo = {}
 ns.Ammo = Ammo
+
+--------------------------------------------------------------------------------
+-- Umbrales
+--------------------------------------------------------------------------------
+-- Se guardan por el nombre del tipo ("arrow", "bullet") y solo si difieren del
+-- valor por defecto, para que cambiar el valor por defecto en una versión
+-- nueva llegue a quien no lo ha tocado.
+
+-- Umbral guardado, o nil. Solo lee: consultar no debe dejar tablas vacías
+-- en el archivo de quien nunca ha tocado los umbrales.
+local function savedThreshold(ammoType, which)
+    local all = Storage.GetAmmo().thresholds
+    local own = all and all[C.TYPES[ammoType].key]
+    return own and own[which]
+end
+
+-- which = "low" (aviso) o "critical" (rojo).
+function Ammo.GetThreshold(ammoType, which)
+    return savedThreshold(ammoType, which) or C.TYPES[ammoType][which]
+end
+
+-- Guarda un umbral; las tablas se crean solo aquí, al escribir.
+local function store(ammoType, which, value)
+    local settings = Storage.GetAmmo()
+    local key = C.TYPES[ammoType].key
+    settings.thresholds = settings.thresholds or {}
+    settings.thresholds[key] = settings.thresholds[key] or {}
+    local default = C.TYPES[ammoType][which]
+    settings.thresholds[key][which] = (value ~= default) and value or nil
+end
+
+local function clamp(value)
+    return math.max(0, math.min(C.MAX_THRESHOLD, math.floor(value)))
+end
+
+-- El crítico nunca puede quedar por encima del aviso: si se pide, se ajusta.
+-- Al bajar el aviso por debajo del crítico, el crítico baja con él.
+function Ammo.SetThreshold(ammoType, which, value)
+    value = clamp(value)
+    if which == "critical" then
+        value = math.min(value, Ammo.GetThreshold(ammoType, "low"))
+    elseif Ammo.GetThreshold(ammoType, "critical") > value then
+        store(ammoType, "critical", value)
+    end
+    store(ammoType, which, value)
+    Ammo.Check()
+    Util.Fire(Const.MSG.SETTINGS_CHANGED)
+end
 
 --------------------------------------------------------------------------------
 -- Recuento
@@ -55,7 +109,7 @@ local function countInBags(ammoType)
     return total, icon
 end
 
--- Munición disponible e icono, o nil si este personaje no gasta munición.
+-- Munición disponible, icono y tipo, o nil si este personaje no gasta munición.
 local function currentAmmo()
     if not C.CLASSES[Api.PlayerClass()] then return nil end
     local ammoType = ammoTypeForWeapon()
@@ -67,7 +121,7 @@ local function currentAmmo()
     else
         count, icon = countInBags(ammoType)
     end
-    return count, icon or C.ICONS[ammoType]
+    return count, icon or C.TYPES[ammoType].icon, ammoType
 end
 
 --------------------------------------------------------------------------------
@@ -75,10 +129,13 @@ end
 --------------------------------------------------------------------------------
 
 -- Nivel del aviso y texto para esa cantidad, o nil si hay de sobra.
-local function noticeFor(count)
+local function noticeFor(count, ammoType)
+    if count >= Ammo.GetThreshold(ammoType, "low") then return nil end
     if count == 0 then return "critical", "Sin munición" end
-    if count < C.CRITICAL then return "critical", ("Munición muy baja: %d"):format(count) end
-    if count < C.LOW then return "warning", ("Munición baja: %d"):format(count) end
+    if count < Ammo.GetThreshold(ammoType, "critical") then
+        return "critical", ("Munición muy baja: %d"):format(count)
+    end
+    return "warning", ("Munición baja: %d"):format(count)
 end
 
 -- El recuadro se crea al usarlo por primera vez (UI/NoticeBox.lua se carga
@@ -90,18 +147,18 @@ local function getBox()
         settings = Storage.GetAmmo,
         tooltip = {
             "Munición",
-            ("Aparece con menos de %d y se pone rojo con menos de %d."):format(C.LOW, C.CRITICAL),
+            "Ámbar: munición baja. Rojo: casi sin munición.",
             "Arrástralo para moverlo.",
-            "Se apaga en /sdeck config o con /sdeck municion.",
+            "Los umbrales se cambian en /sdeck config, pestaña de tu clase.",
         },
     })
     return box
 end
 
 function Ammo.Check()
-    local count, icon = currentAmmo()
+    local count, icon, ammoType = currentAmmo()
     local level, text
-    if count and Ammo.IsEnabled() then level, text = noticeFor(count) end
+    if count and Ammo.IsEnabled() then level, text = noticeFor(count, ammoType) end
     if level then
         getBox():ShowNotice(icon, text, level)
     elseif box then

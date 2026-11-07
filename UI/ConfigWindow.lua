@@ -2,12 +2,15 @@
 Ventana de configuración (/sdeck config)
 ========================================
 
-Una ventana con un botón por hueco (SlotButton.lua), en filas, un
-texto de ayuda, las opciones (casillas, Checkbox.lua) y un botón para
-recargar la interfaz.
+Una ventana con pestañas:
+  Teclas     un botón por hueco (SlotButton.lua), en filas, un texto de ayuda
+             y un botón para recargar la interfaz.
+  <Clase>    opciones propias de la clase del personaje (UI/ClassTabs), si su
+             clase tiene pestaña. Con una sola pestaña no se muestran botones.
 
 Se crea la primera vez que se abre: si el jugador nunca la usa, no consume nada.
-Se redibuja sola cuando el núcleo avisa de que los huecos han cambiado.
+Se redibuja sola cuando el núcleo avisa de que los huecos o las opciones han
+cambiado.
 ]]
 
 local _, ns = ...
@@ -18,58 +21,14 @@ local ConfigWindow = {}
 ns.ConfigWindow = ConfigWindow
 
 local frame          -- la ventana (nil hasta que se abre)
-local buttons = {}   -- buttons[n] = botón del hueco n
-local checks = {}    -- casillas de opciones
+local pages = {}     -- pages[i] = { frame, update } de la pestaña i
 
 --------------------------------------------------------------------------------
 -- Disposición
 --------------------------------------------------------------------------------
 
--- Opciones del addon. Cada una es una entrada de esta tabla: añadir otra es
--- añadir una línea; la ventana crece sola para que quepa. El estado lo guarda
--- su módulo; la casilla solo lo muestra y lo cambia a través de él.
-local OPTIONS = {
-    {
-        label = "Avisar del taunt de la mascota (Bramido)",
-        tooltip = {
-            "Aviso del taunt de la mascota",
-            "Avisa si el Bramido automático está activado en mazmorra o banda",
-            "(le quita los enemigos al tanque) o desactivado fuera de ellas.",
-            "También con /sdeck aviso.",
-        },
-        get = function() return ns.PetTaunt.IsEnabled() end,
-        set = function(on) ns.PetTaunt.SetEnabled(on) end,
-    },
-    {
-        label = "Avisar de munición baja",
-        tooltip = {
-            "Aviso de munición baja",
-            ("Un recuadro discreto con menos de %d flechas o balas,"):format(Const.AMMO.LOW),
-            ("en rojo con menos de %d. Se puede mover arrastrándolo."):format(Const.AMMO.CRITICAL),
-            "También con /sdeck municion.",
-        },
-        get = function() return ns.Ammo.IsEnabled() end,
-        set = function(on) ns.Ammo.SetEnabled(on) end,
-    },
-}
-
 local function windowWidth()
     return UI.COLUMNS * UI.SLOT_SIZE + (UI.COLUMNS - 1) * UI.SLOT_GAP + 2 * UI.PADDING
-end
-
--- Lo que ocupan las casillas, que van entre el botón de recargar y el texto
--- de ayuda. Todo lo de abajo se ancla al borde inferior y los huecos al
--- superior, así que basta con sumarlo al alto y subir el texto de ayuda.
-local function optionsHeight()
-    return #OPTIONS * UI.CHECK_SIZE + UI.OPTIONS_GAP
-end
-
-local function windowHeight()
-    return UI.HEIGHT + optionsHeight()
-end
-
-local function helpBottom()
-    return UI.HELP_BOTTOM + optionsHeight()
 end
 
 -- Posición (relativa a la esquina superior izquierda) del hueco n.
@@ -80,16 +39,82 @@ local function slotOffset(n)
 end
 
 --------------------------------------------------------------------------------
+-- Pestaña "Teclas"
+--------------------------------------------------------------------------------
+
+local function createSlots(page)
+    local buttons = {}
+    for n = 1, Const.NUM_SLOTS do
+        local b = ns.SlotButton.Create(page, n)
+        b:SetPoint("TOPLEFT", slotOffset(n))
+        buttons[n] = b
+    end
+    return buttons
+end
+
+local function createHelp(page)
+    local help = page:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    help:SetPoint("BOTTOMLEFT", UI.PADDING, UI.HELP_BOTTOM)
+    help:SetPoint("BOTTOMRIGHT", -UI.PADDING, UI.HELP_BOTTOM)
+    help:SetText("Los cambios funcionan al momento (en combate, al terminar). Para que la Stream Deck muestre los iconos nuevos hay que recargar la interfaz.")
+end
+
+-- ReloadUI hace que WoW escriba las SavedVariables a disco, que es lo que el
+-- plugin vigila. Recargar corta lo que el jugador esté haciendo (pantalla de
+-- carga de un par de segundos), así que lo decide él con un botón.
+local function createReloadButton(page)
+    local reload = CreateFrame("Button", nil, page, "UIPanelButtonTemplate")
+    reload:SetSize(UI.RELOAD_BUTTON_WIDTH, UI.RELOAD_BUTTON_HEIGHT)
+    reload:SetPoint("BOTTOM", 0, UI.RELOAD_BUTTON_BOTTOM)
+    reload:SetText("Actualizar Stream Deck")
+    reload:SetScript("OnClick", ReloadUI)
+end
+
+-- Cada pestaña es { title, build(page) -> update }: build dibuja su contenido
+-- en la página y devuelve la función que lo vuelve a leer.
+local slotsTab = {
+    title = "Teclas",
+    build = function(page)
+        local buttons = createSlots(page)
+        createHelp(page)
+        createReloadButton(page)
+        return function()
+            for _, b in ipairs(buttons) do b:Update() end
+        end
+    end,
+}
+
+-- Pestaña de la clase del personaje, descrita como filas (UI/OptionsPage.lua).
+local function classTab()
+    local tab = ns.ClassTabs.For(ns.Api.PlayerClass())
+    if not tab then return nil end
+    return {
+        title = tab.title,
+        build = function(page) return ns.OptionsPage.Build(page, tab.rows) end,
+    }
+end
+
+local function tabList()
+    local tabs = { slotsTab }
+    tabs[#tabs + 1] = classTab()
+    return tabs
+end
+
+--------------------------------------------------------------------------------
 -- Dibujado
 --------------------------------------------------------------------------------
 
+-- Vuelve a leer las páginas visibles. Las ocultas se leen al mostrarlas.
 local function refresh()
     if not frame or not frame:IsShown() then return end
-    for _, b in ipairs(buttons) do b:Update() end
+    for _, p in ipairs(pages) do
+        if p.frame:IsShown() then p.update() end
+    end
 end
 
-local function refreshChecks()
-    for _, c in ipairs(checks) do c:Update() end
+local function showPage(index)
+    for i, p in ipairs(pages) do p.frame:SetShown(i == index) end
+    refresh()
 end
 
 --------------------------------------------------------------------------------
@@ -100,14 +125,14 @@ end
 -- arrastrable y que se cierra con Escape.
 local function createFrame()
     local f = CreateFrame("Frame", UI.FRAME_NAME, UIParent, "BasicFrameTemplateWithInset")
-    f:SetSize(windowWidth(), windowHeight())
+    f:SetSize(windowWidth(), UI.HEIGHT)
     f:SetPoint("CENTER")
     f:SetMovable(true)
     f:EnableMouse(true)
     f:RegisterForDrag("LeftButton")
     f:SetScript("OnDragStart", f.StartMoving)
     f:SetScript("OnDragStop", f.StopMovingOrSizing)
-    f:SetScript("OnShow", function() refresh() refreshChecks() end)
+    f:SetScript("OnShow", refresh)
     -- Los frames de esta lista se cierran al pulsar Escape (por su nombre global).
     table.insert(UISpecialFrames, UI.FRAME_NAME)
     -- CreateFrame devuelve el frame ya visible. Lo ocultamos para que quien lo
@@ -131,47 +156,29 @@ local function createTitle(f)
     icon:SetTexture(Const.ICON)
 end
 
-local function createSlots(f)
-    for n = 1, Const.NUM_SLOTS do
-        local b = ns.SlotButton.Create(f, n)
-        b:SetPoint("TOPLEFT", slotOffset(n))
-        buttons[n] = b
+-- Una página (marco que ocupa toda la ventana) por pestaña.
+local function createPages(f, tabs)
+    for i, tab in ipairs(tabs) do
+        local page = CreateFrame("Frame", nil, f)
+        page:SetAllPoints()
+        pages[i] = { frame = page, update = tab.build(page) }
     end
 end
 
-local function createHelp(f)
-    local help = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    help:SetPoint("BOTTOMLEFT", UI.PADDING, helpBottom())
-    help:SetPoint("BOTTOMRIGHT", -UI.PADDING, helpBottom())
-    help:SetText("Los cambios funcionan al momento (en combate, al terminar). Para que la Stream Deck muestre los iconos nuevos hay que recargar la interfaz.")
-end
-
-local function createOptions(f)
-    for i, opt in ipairs(OPTIONS) do
-        local c = ns.Checkbox.Create(f, opt)
-        c:SetPoint("BOTTOMLEFT", UI.PADDING, UI.CHECK_BOTTOM + (i - 1) * UI.CHECK_SIZE)
-        checks[i] = c
-    end
-end
-
--- ReloadUI hace que WoW escriba las SavedVariables a disco, que es lo que el
--- plugin vigila. Recargar corta lo que el jugador esté haciendo (pantalla de
--- carga de un par de segundos), así que lo decide él con un botón.
-local function createReloadButton(f)
-    local reload = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
-    reload:SetSize(UI.RELOAD_BUTTON_WIDTH, UI.RELOAD_BUTTON_HEIGHT)
-    reload:SetPoint("BOTTOM", 0, UI.RELOAD_BUTTON_BOTTOM)
-    reload:SetText("Actualizar Stream Deck")
-    reload:SetScript("OnClick", ReloadUI)
+local function createTabs(f, tabs)
+    if #tabs < 2 then return end
+    local titles = {}
+    for i, tab in ipairs(tabs) do titles[i] = tab.title end
+    ns.TabBar.Create(f, titles, showPage):Select(1)
 end
 
 local function create()
     frame = createFrame()
     createTitle(frame)
-    createSlots(frame)
-    createHelp(frame)
-    createOptions(frame)
-    createReloadButton(frame)
+    local tabs = tabList()
+    createPages(frame, tabs)
+    showPage(1)
+    createTabs(frame, tabs)
 end
 
 --------------------------------------------------------------------------------
@@ -184,6 +191,5 @@ function ConfigWindow.Toggle()
 end
 
 Util.Listen(Const.MSG.SLOTS_UPDATED, refresh)
--- Si una opción cambia con un comando estando la ventana creada, la casilla
--- se pone al día (aunque esté cerrada: así ya está bien al abrirla).
-Util.Listen(Const.MSG.SETTINGS_CHANGED, refreshChecks)
+-- Una opción cambiada con un comando (/sdeck aviso...) se ve en su casilla.
+Util.Listen(Const.MSG.SETTINGS_CHANGED, refresh)

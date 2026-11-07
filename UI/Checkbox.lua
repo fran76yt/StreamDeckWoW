@@ -17,8 +17,7 @@ la refleja.
 ]]
 
 local _, ns = ...
-local Const = ns.Const
-local UI = Const.UI
+local UI = ns.Const.UI
 
 local Checkbox = {}
 ns.Checkbox = Checkbox
@@ -34,17 +33,6 @@ local function onClick(self)
     self.opts.set(self:GetChecked() and true or false)
     -- Se vuelve a leer: si el módulo no aceptó el cambio, la casilla no miente.
     self:Update()
-end
-
-local function showTooltip(self)
-    local lines = self.opts.tooltip
-    if not lines then return end
-    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-    GameTooltip:SetText(lines[1])
-    for i = 2, #lines do
-        GameTooltip:AddLine(lines[i], unpack(UI.TOOLTIP_HELP_COLOR))
-    end
-    GameTooltip:Show()
 end
 
 -- La plantilla de Blizzard trae su propio texto (.Text) en el cliente moderno;
@@ -65,8 +53,7 @@ function Checkbox.Create(parent, opts)
     for name, fn in pairs(methods) do cb[name] = fn end
     setLabel(cb, opts.label)
     cb:SetScript("OnClick", onClick)
-    cb:SetScript("OnEnter", showTooltip)
-    cb:SetScript("OnLeave", GameTooltip_Hide)
+    ns.Tooltip.Attach(cb, opts.tooltip)
     cb:Update()
     return cb
 end
