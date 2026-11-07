@@ -117,6 +117,29 @@ function Util.ToggleFlag(t, key)
     return t[key] == true
 end
 
+-- Interruptor de una función opcional (avisos...), encendida por defecto. Se
+-- guarda como settings().off para que el archivo solo lleve las que se han
+-- apagado. onChange(on) se llama tras cada cambio, y se anuncia
+-- SETTINGS_CHANGED para que la ventana ponga al día sus casillas aunque el
+-- cambio venga de un comando. Devuelve { IsEnabled, SetEnabled, Toggle }.
+function Util.Switch(settings, onChange)
+    local switch = {}
+    function switch.IsEnabled()
+        return not settings().off
+    end
+    function switch.SetEnabled(on)
+        settings().off = (not on) or nil
+        onChange(on)
+        Util.Fire(Const.MSG.SETTINGS_CHANGED)
+    end
+    -- Devuelve true si queda encendida.
+    function switch.Toggle()
+        switch.SetEnabled(not switch.IsEnabled())
+        return switch.IsEnabled()
+    end
+    return switch
+end
+
 -- Texto en color para el chat.
 function Util.Colorize(hex, text)
     return "|cff" .. hex .. text .. "|r"

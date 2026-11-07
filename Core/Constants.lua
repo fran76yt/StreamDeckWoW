@@ -57,6 +57,7 @@ Const.ITEM_INFO_EVENT = "GET_ITEM_INFO_RECEIVED"
 Const.MSG = {
     SLOT_CHANGED = "SLOT_CHANGED",     -- el jugador cambió un hueco en la ventana
     SLOTS_UPDATED = "SLOTS_UPDATED",   -- se han recalculado y asignado los huecos
+    SETTINGS_CHANGED = "SETTINGS_CHANGED",   -- ha cambiado una opción (aviso del taunt...)
 }
 
 -- Chat: prefijo de los mensajes (icono + nombre).
@@ -80,6 +81,7 @@ Const.UI = {
     TITLE = "StreamDeck WoW",
     TITLE_ICON_SIZE = 16,
     TITLE_ICON_GAP = 4,     -- separación entre el icono y el texto del título
+    -- Alto sin opciones: ConfigWindow le suma lo que ocupen las casillas.
     HEIGHT = 230,
     PADDING = 20,
     SLOT_SIZE = 44,
@@ -95,7 +97,13 @@ Const.UI = {
     SLOT_BACKGROUND_ALPHA = 0.6,   -- fondo oscuro de cada hueco
     KEY_LABEL_OFFSET = 2,          -- separación del texto "Fn" sobre el hueco
     NAME_OFFSET = -3,              -- separación del nombre bajo el hueco
-    HELP_BOTTOM = 44,              -- altura del texto de ayuda desde abajo
+    -- Parte de abajo, de abajo arriba: botón de recargar, casillas de opciones
+    -- (una sobre otra) y texto de ayuda. Todo se ancla al borde inferior.
+    HELP_BOTTOM = 44,              -- altura del texto de ayuda sin opciones; sube con ellas
+    CHECK_BOTTOM = 42,             -- altura de la primera casilla desde abajo
+    CHECK_SIZE = 24,               -- alto de cada casilla (y lo que sube la siguiente)
+    OPTIONS_GAP = 4,               -- separación entre las casillas y el texto de ayuda
+    CHECK_LABEL_GAP = 2,           -- separación entre la casilla y su texto
     RELOAD_BUTTON_WIDTH = 200,
     RELOAD_BUTTON_HEIGHT = 24,
     RELOAD_BUTTON_BOTTOM = 14,
@@ -121,6 +129,44 @@ Const.PET_TAUNT = {
     -- Repetir el aviso al entrar en combate si sigue mal (el primero se puede
     -- perder durante la pantalla de carga o con el chat lleno).
     REMIND_ON_COMBAT = true,
+}
+
+-- Aviso de munición baja (Features/Ammo.lua). Usa los números de clase y
+-- subclase de objeto del juego, que no dependen del idioma.
+Const.AMMO = {
+    CLASSES = { HUNTER = true },   -- solo para quien depende de la munición
+    LOW = 200,                     -- por debajo, recuadro ámbar
+    CRITICAL = 50,                 -- por debajo, recuadro rojo
+    RANGED_SLOT = 18,              -- ranura del arma a distancia
+    AMMO_SLOT = 0,                 -- ranura de la munición (en clientes que la tienen)
+    WEAPON_CLASS = 2,              -- clase de objeto "arma"
+    PROJECTILE_CLASS = 6,          -- clase de objeto "proyectil"
+    -- Subclase del arma -> subclase de la munición que dispara: arco (2) y
+    -- ballesta (18) usan flechas (2); armas de fuego (3), balas (3). Las
+    -- arrojadizas y las varitas no gastan munición y no aparecen.
+    WEAPON_AMMO = { [2] = 2, [18] = 2, [3] = 3 },
+    -- Icono de reserva por tipo de munición, si no queda ninguna para copiar el suyo.
+    ICONS = { [2] = "Interface\\Icons\\INV_Ammo_Arrow_02", [3] = "Interface\\Icons\\INV_Ammo_Bullet_02" },
+    CHECK_DELAY = 0.5,             -- agrupa las ráfagas de BAG_UPDATE al disparar o lootear
+}
+
+-- Recuadro de aviso discreto (UI/NoticeBox.lua): un marco pequeño con icono y
+-- texto, que el jugador puede mover. Colores del borde (RGB 0-1) por nivel.
+Const.NOTICE = {
+    WIDTH = 190,
+    HEIGHT = 36,
+    ICON_SIZE = 24,
+    PADDING = 6,
+    DEFAULT_POINT = { "CENTER", 0, -160 },   -- algo por debajo del centro de la pantalla
+    BACKGROUND = "Interface\\Tooltips\\UI-Tooltip-Background",
+    BORDER = "Interface\\Tooltips\\UI-Tooltip-Border",
+    BORDER_SIZE = 12,
+    INSET = 3,
+    BACKGROUND_COLOR = { 0, 0, 0, 0.7 },
+    LEVEL_COLOR = {
+        warning = { 1, 0.75, 0 },
+        critical = { 1, 0.25, 0.25 },
+    },
 }
 
 -- Botón del minimapa. Las medidas y texturas son las del aro estándar que usan

@@ -3,7 +3,8 @@ Ventana de configuración (/sdeck config)
 ========================================
 
 Una ventana con un botón por hueco (SlotButton.lua), en filas, un
-texto de ayuda y un botón para recargar la interfaz.
+texto de ayuda, las opciones (casillas, Checkbox.lua) y un botón para
+recargar la interfaz.
 
 Se crea la primera vez que se abre: si el jugador nunca la usa, no consume nada.
 Se redibuja sola cuando el núcleo avisa de que los huecos han cambiado.
@@ -18,13 +19,57 @@ ns.ConfigWindow = ConfigWindow
 
 local frame          -- la ventana (nil hasta que se abre)
 local buttons = {}   -- buttons[n] = botón del hueco n
+local checks = {}    -- casillas de opciones
 
 --------------------------------------------------------------------------------
 -- Disposición
 --------------------------------------------------------------------------------
 
+-- Opciones del addon. Cada una es una entrada de esta tabla: añadir otra es
+-- añadir una línea; la ventana crece sola para que quepa. El estado lo guarda
+-- su módulo; la casilla solo lo muestra y lo cambia a través de él.
+local OPTIONS = {
+    {
+        label = "Avisar del taunt de la mascota (Bramido)",
+        tooltip = {
+            "Aviso del taunt de la mascota",
+            "Avisa si el Bramido automático está activado en mazmorra o banda",
+            "(le quita los enemigos al tanque) o desactivado fuera de ellas.",
+            "También con /sdeck aviso.",
+        },
+        get = function() return ns.PetTaunt.IsEnabled() end,
+        set = function(on) ns.PetTaunt.SetEnabled(on) end,
+    },
+    {
+        label = "Avisar de munición baja",
+        tooltip = {
+            "Aviso de munición baja",
+            ("Un recuadro discreto con menos de %d flechas o balas,"):format(Const.AMMO.LOW),
+            ("en rojo con menos de %d. Se puede mover arrastrándolo."):format(Const.AMMO.CRITICAL),
+            "También con /sdeck municion.",
+        },
+        get = function() return ns.Ammo.IsEnabled() end,
+        set = function(on) ns.Ammo.SetEnabled(on) end,
+    },
+}
+
 local function windowWidth()
     return UI.COLUMNS * UI.SLOT_SIZE + (UI.COLUMNS - 1) * UI.SLOT_GAP + 2 * UI.PADDING
+end
+
+-- Lo que ocupan las casillas, que van entre el botón de recargar y el texto
+-- de ayuda. Todo lo de abajo se ancla al borde inferior y los huecos al
+-- superior, así que basta con sumarlo al alto y subir el texto de ayuda.
+local function optionsHeight()
+    return #OPTIONS * UI.CHECK_SIZE + UI.OPTIONS_GAP
+end
+
+local function windowHeight()
+    return UI.HEIGHT + optionsHeight()
+end
+
+local function helpBottom()
+    return UI.HELP_BOTTOM + optionsHeight()
 end
 
 -- Posición (relativa a la esquina superior izquierda) del hueco n.
@@ -43,6 +88,10 @@ local function refresh()
     for _, b in ipairs(buttons) do b:Update() end
 end
 
+local function refreshChecks()
+    for _, c in ipairs(checks) do c:Update() end
+end
+
 --------------------------------------------------------------------------------
 -- Construcción
 --------------------------------------------------------------------------------
@@ -51,14 +100,14 @@ end
 -- arrastrable y que se cierra con Escape.
 local function createFrame()
     local f = CreateFrame("Frame", UI.FRAME_NAME, UIParent, "BasicFrameTemplateWithInset")
-    f:SetSize(windowWidth(), UI.HEIGHT)
+    f:SetSize(windowWidth(), windowHeight())
     f:SetPoint("CENTER")
     f:SetMovable(true)
     f:EnableMouse(true)
     f:RegisterForDrag("LeftButton")
     f:SetScript("OnDragStart", f.StartMoving)
     f:SetScript("OnDragStop", f.StopMovingOrSizing)
-    f:SetScript("OnShow", refresh)
+    f:SetScript("OnShow", function() refresh() refreshChecks() end)
     -- Los frames de esta lista se cierran al pulsar Escape (por su nombre global).
     table.insert(UISpecialFrames, UI.FRAME_NAME)
     -- CreateFrame devuelve el frame ya visible. Lo ocultamos para que quien lo
@@ -92,9 +141,17 @@ end
 
 local function createHelp(f)
     local help = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    help:SetPoint("BOTTOMLEFT", UI.PADDING, UI.HELP_BOTTOM)
-    help:SetPoint("BOTTOMRIGHT", -UI.PADDING, UI.HELP_BOTTOM)
+    help:SetPoint("BOTTOMLEFT", UI.PADDING, helpBottom())
+    help:SetPoint("BOTTOMRIGHT", -UI.PADDING, helpBottom())
     help:SetText("Los cambios funcionan al momento (en combate, al terminar). Para que la Stream Deck muestre los iconos nuevos hay que recargar la interfaz.")
+end
+
+local function createOptions(f)
+    for i, opt in ipairs(OPTIONS) do
+        local c = ns.Checkbox.Create(f, opt)
+        c:SetPoint("BOTTOMLEFT", UI.PADDING, UI.CHECK_BOTTOM + (i - 1) * UI.CHECK_SIZE)
+        checks[i] = c
+    end
 end
 
 -- ReloadUI hace que WoW escriba las SavedVariables a disco, que es lo que el
@@ -113,6 +170,7 @@ local function create()
     createTitle(frame)
     createSlots(frame)
     createHelp(frame)
+    createOptions(frame)
     createReloadButton(frame)
 end
 
@@ -126,3 +184,6 @@ function ConfigWindow.Toggle()
 end
 
 Util.Listen(Const.MSG.SLOTS_UPDATED, refresh)
+-- Si una opción cambia con un comando estando la ventana creada, la casilla
+-- se pone al día (aunque esté cerrada: así ya está bien al abrirla).
+Util.Listen(Const.MSG.SETTINGS_CHANGED, refreshChecks)

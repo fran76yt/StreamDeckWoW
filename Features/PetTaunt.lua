@@ -117,11 +117,10 @@ end
 -- API del módulo
 --------------------------------------------------------------------------------
 
--- Apaga o enciende el aviso y lo recuerda. Devuelve true si queda encendido.
--- Al encenderlo se comprueba enseguida, para que avise si ya está mal.
-function PetTaunt.Toggle()
-    local off = Util.ToggleFlag(Storage.GetPetTaunt(), "off")
+-- Encender o apagar el aviso. Al encenderlo se comprueba enseguida, para que
+-- avise si ya está mal.
+local switch = Util.Switch(Storage.GetPetTaunt, function(on)
     warned = false
-    if not off then check(false) end
-    return not off
-end
+    if on then check(false) end
+end)
+PetTaunt.IsEnabled, PetTaunt.SetEnabled, PetTaunt.Toggle = switch.IsEnabled, switch.SetEnabled, switch.Toggle

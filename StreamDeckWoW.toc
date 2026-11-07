@@ -50,8 +50,11 @@ Core\Slots.lua
 Core\Bindings.lua
 #   Funciones extra
 Features\PetTaunt.lua
+Features\Ammo.lua
 #   Interfaz
 UI\SlotButton.lua
+UI\Checkbox.lua
+UI\NoticeBox.lua
 UI\ConfigWindow.lua
 UI\MinimapButton.lua
 #   Comandos de chat (usa todo lo anterior)

@@ -30,6 +30,10 @@ Estructura:
                hidden  true si el jugador lo ha ocultado con /sdeck minimapa
   petTaunt   preferencias del aviso del taunt de la mascota (tampoco las lee):
                off     true si el jugador lo ha apagado con /sdeck aviso
+  ammo       preferencias del aviso de munición baja (tampoco las lee):
+               off     true si el jugador lo ha apagado
+               point   posición del recuadro: { punto, punto relativo, x, y }
+                       (nil -> la de por defecto)
 ]]
 
 local _, ns = ...
@@ -81,4 +85,8 @@ end
 
 function Storage.GetPetTaunt()
     return section("petTaunt")
+end
+
+function Storage.GetAmmo()
+    return section("ammo")
 end

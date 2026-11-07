@@ -145,9 +145,9 @@ Todos los archivos del addon reciben la misma tabla privada (`local _, ns = ...`
 | Archivo | Responsabilidad |
 |---|---|
 | [`Core/Constants.lua`](Core/Constants.lua) | Todos los valores fijos: número de huecos, modificadores del atajo, eventos, colores, medidas de la ventana y del botón del minimapa, y los IDs del taunt de la mascota |
-| [`Core/Util.lua`](Core/Util.lua) | Utilidades genéricas, reutilizables en otros addons (solo dependen de las constantes): suscripción a eventos, mensajes entre módulos, *debounce*, ejecutar fuera de combate, escribir en el chat |
+| [`Core/Util.lua`](Core/Util.lua) | Utilidades genéricas, reutilizables en otros addons (solo dependen de las constantes): suscripción a eventos, mensajes entre módulos, *debounce*, ejecutar fuera de combate, interruptores de opciones (`Util.Switch`), escribir en el chat |
 | [`Core/Keys.lua`](Core/Keys.lua) | Traduce un hueco a su atajo (`ALT-CTRL-SHIFT-F3`) y a su texto legible (`Ctrl+Alt+Mayús+F3`) |
-| [`Core/Api.lua`](Core/Api.lua) | Única puerta a la API del juego para hechizos, objetos, macros, cursor, mascota, tipo de instancia, avisos en pantalla y metadatos. Usa la API moderna (`C_Spell`, `C_Item`, `C_SpellBook`); donde hay una equivalente clásica (hechizo conocido, número de objetos, metadatos) la usa como respaldo, y si falta una función de hechizos u objetos devuelve vacío en lugar de dar un error de Lua (las de macros, cursor, jugador y mascota se usan directamente) |
+| [`Core/Api.lua`](Core/Api.lua) | Única puerta a la API del juego para hechizos, objetos, equipo y bolsas, macros, cursor, mascota, tipo de instancia, avisos en pantalla y metadatos. Usa la API moderna (`C_Spell`, `C_Item`, `C_SpellBook`); donde hay una equivalente clásica (hechizo conocido, número de objetos, metadatos) la usa como respaldo, y si falta una función de hechizos u objetos devuelve vacío en lugar de dar un error de Lua (las de macros, cursor, jugador y mascota se usan directamente) |
 | [`Core/Storage.lua`](Core/Storage.lua) | Único módulo que toca la variable guardada `StreamDeckWoWChar` (huecos y posición del botón del minimapa) |
 | [`Defaults/Defaults.lua`](Defaults/Defaults.lua) | Registro de valores por defecto: comunes y por clase |
 | [`Defaults/Common.lua`](Defaults/Common.lua) | Huecos comunes a todas las clases |
@@ -155,8 +155,11 @@ Todos los archivos del addon reciben la misma tabla privada (`local _, ns = ...`
 | [`Core/Slots.lua`](Core/Slots.lua) | Qué hay en cada hueco: definición, resolución, foto para el plugin |
 | [`Core/Bindings.lua`](Core/Bindings.lua) | Asigna los atajos y decide cuándo recalcular |
 | [`Features/PetTaunt.lua`](Features/PetTaunt.lua) | Aviso del taunt de la mascota: comprueba el lanzamiento automático de Bramido al cambiar de zona, de mascota o al entrar en combate |
+| [`Features/Ammo.lua`](Features/Ammo.lua) | Aviso de munición baja: cuenta las flechas o balas que sirven para el arma a distancia y muestra u oculta el recuadro |
 | [`UI/SlotButton.lua`](UI/SlotButton.lua) | Componente de botón de hueco: icono, arrastrar y soltar, tooltip |
-| [`UI/ConfigWindow.lua`](UI/ConfigWindow.lua) | La ventana `/sdeck config` |
+| [`UI/Checkbox.lua`](UI/Checkbox.lua) | Componente de casilla: lee y escribe su estado a través de funciones del módulo que la usa, sin guardar nada por sí misma |
+| [`UI/NoticeBox.lua`](UI/NoticeBox.lua) | Componente de recuadro de aviso discreto: icono, texto, borde del color del nivel y posición movible que se guarda |
+| [`UI/ConfigWindow.lua`](UI/ConfigWindow.lua) | La ventana `/sdeck config`, con las opciones en una tabla (`OPTIONS`): añadir una casilla es añadir una entrada |
 | [`UI/MinimapButton.lua`](UI/MinimapButton.lua) | El botón del minimapa: abre la ventana, muestra el estado y se puede mover o esconder. Hecho a mano, sin LibDBIcon, para no depender de librerías externas |
 | [`Core/Commands.lua`](Core/Commands.lua) | Comandos `/sdeck`; los publica en `ns.Commands.Run` para que el botón del minimapa los reutilice |
 
@@ -177,6 +180,7 @@ Los módulos no se llaman directamente cuando eso crearía dependencias circular
 
 - `SLOT_CHANGED`: el jugador ha cambiado un hueco → `Bindings` recalcula.
 - `SLOTS_UPDATED`: se han asignado los huecos → la ventana se redibuja y, la primera vez, se escribe el resumen en el chat.
+- `SETTINGS_CHANGED`: ha cambiado una opción (los avisos del taunt y de munición) → las casillas de la ventana se ponen al día, aunque el cambio se haya hecho con un comando.
 
 ### Tipos de entrada de un hueco
 
@@ -302,6 +306,10 @@ StreamDeckWoWChar = {
     ["petTaunt"] = {                    -- aviso del taunt de la mascota (solo para el addon)
         ["off"] = true,                 -- solo si lo has apagado con /sdeck aviso
     },
+    ["ammo"] = {                        -- aviso de munición baja (solo para el addon)
+        ["off"] = true,                 -- solo si lo has apagado
+        ["point"] = { "CENTER", "CENTER", 0, -160 },   -- solo si has movido el recuadro
+    },
 }
 ```
 
@@ -317,7 +325,7 @@ Casos de cada hueco en `slots`:
 
 Si el cliente todavía no tiene un objeto en caché, el atajo se asigna con `"item:<id>"`, pero en la foto `name` queda vacío (y `short` también, si el hueco no tiene texto propio) hasta que el servidor envía los datos; `/sdeck` lo muestra como «objeto <id> (cargando datos)».
 
-El plugin solo usa `slots` (y `class`, para su registro). `custom`, `minimap` y `petTaunt` son para el propio addon.
+El plugin solo usa `slots` (y `class`, para su registro). `custom`, `minimap`, `petTaunt` y `ammo` son para el propio addon.
 
 ---
 
@@ -429,6 +437,7 @@ Puedes montarlo a mano en la aplicación de Stream Deck: arrastra **Hueco WoW** 
 | `/sdeck config` | Abre o cierra la ventana de configuración (también con clic en el botón del minimapa) |
 | `/sdeck minimapa` | Oculta el botón del minimapa o lo vuelve a mostrar; se recuerda por personaje |
 | `/sdeck aviso` | Apaga o enciende el aviso del taunt de la mascota; se recuerda por personaje |
+| `/sdeck municion` | Apaga o enciende el aviso de munición baja; se recuerda por personaje |
 | `/sdeck ayuda` | Versión del addon y lista de comandos (también sale con cualquier otro texto) |
 
 ### Botón del minimapa
@@ -453,9 +462,28 @@ En mazmorras y bandas los enemigos los tiene que mantener el tanque: si la masco
 - Se avisa una vez cuando la situación pasa a estar mal: al entrar o salir de una instancia, al invocar la mascota o al cambiar el automático. Si sigue mal, **se repite al entrar en combate**. Cuando lo corriges, una línea en el chat lo confirma.
 - Sin mascota, o con una que no tiene Bramido, no avisa.
 - El addon **no lo cambia por ti**: activar o desactivar el automático de una habilidad de la mascota es una acción protegida que solo puede hacer el jugador. Se cambia con clic derecho en Bramido, en la barra de la mascota. Si quieres hacerlo desde la Stream Deck, crea una macro con `/petautocasttoggle Bramido` y arrástrala a un hueco con `/sdeck config`.
-- `/sdeck aviso` lo apaga si no lo quieres.
+- Se apaga o enciende con la casilla **Avisar del taunt de la mascota (Bramido)** de la ventana de configuración, o con `/sdeck aviso`. Las dos cosas van sincronizadas.
 
 Los IDs de los siete rangos de Bramido están en `Const.PET_TAUNT` ([`Core/Constants.lua`](Core/Constants.lua)), junto con los tipos de instancia en los que debe estar desactivado. Sirve para cualquier taunt de mascota: basta con añadir sus IDs a la lista.
+
+### Aviso de munición baja
+
+Un recuadro pequeño con el icono de tu munición y cuántas te quedan, para acordarte de comprar antes de quedarte sin flechas. No suena ni ocupa el centro de la pantalla: aparece mientras falte y desaparece solo cuando vuelves a tener suficiente.
+
+| Munición | Recuadro |
+|---|---|
+| 200 o más | No aparece |
+| Menos de 200 | Borde ámbar: «Munición baja: 143» |
+| Menos de 50 | Borde rojo: «Munición muy baja: 32» |
+| Ninguna | Borde rojo: «Sin munición» |
+
+- **Qué cuenta:** la munición equipada, si el cliente tiene esa ranura; si no, todas las flechas (con arco o ballesta) o balas (con arma de fuego) de tus bolsas y carcajes. Las de otro tipo no cuentan: unas balas no sirven para un arco.
+- Solo para cazadores, y solo con un arma que gaste munición: con varita o arma arrojadiza no hay aviso.
+- **Arrástralo** a donde te moleste menos; la posición se guarda por personaje. Al principio está algo por debajo del centro de la pantalla.
+- Se apaga o enciende con la casilla **Avisar de munición baja** de la ventana de configuración, o con `/sdeck municion`.
+- Los umbrales (200 y 50) están en `Const.AMMO` ([`Core/Constants.lua`](Core/Constants.lua)).
+
+Sin verificar en Forever: si su cliente tiene ranura de munición. Por eso, además, se cuentan las bolsas, que funciona en cualquier caso.
 
 ### Ventana de configuración
 
@@ -466,6 +494,7 @@ Los IDs de los siete rangos de Bramido están en `Const.PET_TAUNT` ([`Core/Const
 - **Mayús + clic derecho:** deja el hueco vacío.
 - Nombre en **dorado** = personalizado; en gris claro = valor por defecto; «vacío» en gris oscuro = hueco vacío.
 - **Icono en gris** = todavía no lo tienes, tanto si es un valor por defecto como si lo has arrastrado tú.
+- Las casillas **Avisar del taunt de la mascota (Bramido)** y **Avisar de munición baja** apagan o encienden esos avisos (ver los apartados anteriores).
 - **Actualizar Stream Deck** recarga la interfaz para que WoW guarde el archivo y la Stream Deck muestre los iconos nuevos.
 
 Los cambios funcionan en el juego **al momento** (si estás en combate, al terminar la pelea); recargar solo hace falta para que la Stream Deck los vea.
@@ -529,9 +558,12 @@ StreamDeckWoW/                         ← carpeta del addon (raíz del reposito
 │   ├── Common.lua                     todas las clases
 │   └── Classes/Hunter.lua             cazador
 ├── Features/                          funciones extra, independientes de las teclas
-│   └── PetTaunt.lua                   aviso del taunt de la mascota
+│   ├── PetTaunt.lua                   aviso del taunt de la mascota
+│   └── Ammo.lua                       aviso de munición baja
 ├── UI/                                interfaz
 │   ├── SlotButton.lua                 botón de hueco
+│   ├── Checkbox.lua                   casilla de opciones
+│   ├── NoticeBox.lua                  recuadro de aviso discreto
 │   ├── ConfigWindow.lua               ventana /sdeck config
 │   └── MinimapButton.lua              botón del minimapa
 ├── Media/Icon.tga                     icono del addon (lista de addons y chat)

@@ -180,6 +180,44 @@ function Api.ItemIcon(id)
     return call(C_Item, "GetItemIconByID", id)
 end
 
+-- Clase y subclase del objeto (números, no dependen del idioma): por ejemplo
+-- 2/2 es un arco y 6/2 flechas. GetItemInfoInstant no necesita que el objeto
+-- esté en caché, así que responde siempre al momento.
+function Api.ItemClass(id)
+    local f = apiFunction(C_Item, "GetItemInfoInstant") or GetItemInfoInstant
+    if not f then return nil end
+    local _, _, _, _, _, classID, subclassID = f(id)
+    return classID, subclassID
+end
+
+--------------------------------------------------------------------------------
+-- Equipo y bolsas
+--------------------------------------------------------------------------------
+
+-- ID del objeto equipado en una ranura del personaje (nil si está vacía o si
+-- la ranura no existe en este cliente).
+function Api.EquippedItem(slot)
+    return GetInventoryItemID("player", slot)
+end
+
+-- Todo lo que hay en las bolsas (la mochila es la 0; carcajes y bolsas de
+-- munición cuentan como bolsas): lista de { id, count }.
+function Api.BagItems()
+    local numSlots = apiFunction(C_Container, "GetContainerNumSlots") or GetContainerNumSlots
+    local slotInfo = apiFunction(C_Container, "GetContainerItemInfo")
+    local items = {}
+    if not numSlots or not slotInfo then return items end
+    for bag = 0, NUM_BAG_SLOTS or 4 do
+        for slot = 1, numSlots(bag) or 0 do
+            local info = slotInfo(bag, slot)
+            if info and info.itemID then
+                items[#items + 1] = { id = info.itemID, count = info.stackCount or 1 }
+            end
+        end
+    end
+    return items
+end
+
 --------------------------------------------------------------------------------
 -- Macros
 --------------------------------------------------------------------------------
