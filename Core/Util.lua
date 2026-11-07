@@ -110,6 +110,36 @@ function Util.FirstMatch(list, test, build)
     end
 end
 
+-- Parte una lista en trozos de "size" elementos (el último puede ser menor).
+function Util.Chunk(list, size)
+    local chunks = {}
+    for i, v in ipairs(list) do
+        local n = math.floor((i - 1) / size) + 1
+        chunks[n] = chunks[n] or {}
+        table.insert(chunks[n], v)
+    end
+    return chunks
+end
+
+-- Textura dentro de un texto (|T ruta:alto:ancho|t), como icono delante de
+-- una etiqueta. Sirve con rutas y con IDs de archivo.
+function Util.IconText(icon, size)
+    return ("|T%s:%d:%d|t"):format(tostring(icon), size, size)
+end
+
+-- Guarda en t[key] un valor elegido por el jugador solo si difiere del valor
+-- por defecto; si coincide, lo borra. Así el archivo solo lleva lo cambiado y
+-- un cambio del valor por defecto en una versión nueva llega a quien no lo
+-- había tocado. (No vale "t[key] = v ~= default and v or nil": con v = false
+-- guardaría nil.)
+function Util.SetOverride(t, key, value, default)
+    if value == default then
+        t[key] = nil
+    else
+        t[key] = value
+    end
+end
+
 -- Invierte un indicador de una tabla y devuelve si queda activado. Guarda nil
 -- en vez de false para que las SavedVariables solo lleven lo que se ha cambiado.
 function Util.ToggleFlag(t, key)

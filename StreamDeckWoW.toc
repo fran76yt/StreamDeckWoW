@@ -48,20 +48,22 @@ Defaults\Classes\Hunter.lua
 #   Lógica
 Core\Slots.lua
 Core\Bindings.lua
+#   Componentes de interfaz que usan también las funciones extra
+UI\Tooltip.lua
+UI\NoticeBox.lua
 #   Funciones extra
 Features\PetTaunt.lua
 Features\Ammo.lua
+Features\Aspect.lua
 #   Interfaz
-UI\Tooltip.lua
 UI\SlotButton.lua
 UI\Checkbox.lua
 UI\NumberBox.lua
-UI\NoticeBox.lua
 UI\OptionsPage.lua
-UI\TabBar.lua
-#   Pestañas por clase de la ventana: registro y una por clase
-UI\ClassTabs\ClassTabs.lua
-UI\ClassTabs\Hunter.lua
+UI\Sidebar.lua
+#   Secciones por clase de la ventana: registro y una por clase
+UI\ClassPages\ClassPages.lua
+UI\ClassPages\Hunter.lua
 UI\ConfigWindow.lua
 UI\MinimapButton.lua
 #   Comandos de chat (usa todo lo anterior)

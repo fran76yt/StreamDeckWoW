@@ -97,16 +97,14 @@ Const.UI = {
     KEY_LABEL_OFFSET = 2,          -- separación del texto "Fn" sobre el hueco
     NAME_OFFSET = -3,              -- separación del nombre bajo el hueco
     HELP_BOTTOM = 44,              -- altura del texto de ayuda desde abajo
-    -- Pestañas: botones colgando bajo el borde inferior de la ventana, como en
-    -- las ventanas de Blizzard.
-    TAB_WIDTH = 100,
-    TAB_HEIGHT = 24,
-    TAB_GAP = 4,
-    -- Páginas de opciones (pestañas de clase): filas de arriba abajo.
+    -- Páginas de opciones (secciones de clase): filas de arriba abajo.
     PAGE_TOP = -36,                -- primera fila, bajo la barra de título
     ROW_HEIGHT = 26,
     CHECK_SIZE = 24,
     CHECK_LABEL_GAP = 2,           -- separación entre la casilla y su texto
+    CHECK_COLUMN_WIDTH = 110,      -- ancho de cada casilla en las filas de varias
+    CHECKS_PER_ROW = 3,
+    CHECK_ICON_SIZE = 16,          -- icono delante del texto de una casilla
     -- Cajas numéricas, en columnas: x de la izquierda de cada columna.
     NUMBER_BOX_WIDTH = 44,
     NUMBER_BOX_HEIGHT = 20,
@@ -115,6 +113,30 @@ Const.UI = {
     RELOAD_BUTTON_WIDTH = 200,
     RELOAD_BUTTON_HEIGHT = 24,
     RELOAD_BUTTON_BOTTOM = 14,
+    -- Barra lateral de navegación (UI/Sidebar.lua), a la izquierda de la
+    -- ventana, bajo la barra de título. Colores RGBA 0-1: el dorado es el de
+    -- los textos de Blizzard, para que la selección no desentone.
+    NAV = {
+        WIDTH = 112,
+        LEFT = 3,                  -- separación del borde izquierdo de la ventana
+        TOP = -24,                 -- bajo la barra de título
+        BOTTOM = 3,
+        FIRST_GAP = 8,             -- espacio sobre la primera entrada
+        ENTRY_HEIGHT = 20,
+        ENTRY_GAP = 2,
+        HEADER_GAP = 10,           -- espacio sobre el título de un grupo
+        TEXT_LEFT = 10,            -- sangría del texto de las entradas sueltas
+        INDENT = 18,               -- sangría de las entradas de un grupo
+        ACCENT_WIDTH = 2,          -- raya a la izquierda de la entrada elegida
+        DIVIDER_WIDTH = 1,         -- línea entre la barra y el contenido
+        BACKGROUND_COLOR = { 0, 0, 0, 0.35 },
+        DIVIDER_COLOR = { 1, 0.82, 0, 0.25 },
+        HOVER_COLOR = { 1, 1, 1, 0.08 },
+        SELECTED_COLOR = { 1, 0.82, 0, 0.12 },
+        ACCENT_COLOR = { 1, 0.82, 0, 1 },
+        TEXT_COLOR = { 0.85, 0.85, 0.85 },
+        SELECTED_TEXT_COLOR = { 1, 0.82, 0 },
+    },
     -- Colores de las líneas del tooltip (RGB 0-1).
     TOOLTIP_KEY_COLOR = { 0.2, 1, 0.6 },
     TOOLTIP_WARNING_COLOR = { 1, 0.4, 0.4 },
@@ -164,6 +186,28 @@ Const.AMMO = {
     -- arrojadizas y las varitas no gastan munición y no aparecen.
     WEAPON_AMMO = { [2] = 2, [18] = 2, [3] = 3 },
     CHECK_DELAY = 0.5,             -- agrupa las ráfagas de BAG_UPDATE al disparar o lootear
+}
+
+-- Aviso de aspecto (Features/Aspect.lua). IDs según Wowhead Forever; todos
+-- los rangos de un aspecto se llaman igual, así que con el nombre del primero
+-- se reconocen los demás. "label" es el nombre corto de la ventana y
+-- "default" si cuenta como aspecto válido mientras el jugador no lo cambie:
+-- los de combate sí; los de viaje y de grupo no, para que avise si entras en
+-- combate con ellos (el guepardo y la manada te dejan aturdido al recibir golpes).
+Const.ASPECT = {
+    CLASSES = { HUNTER = true },
+    LIST = {   -- en el orden de la ventana
+        { key = "hawk", label = "Halcón", default = true,
+          spells = { 13165, 14318, 14319, 14320, 14321, 14322, 25296 } },
+        { key = "monkey", label = "Mono", default = true, spells = { 13163 } },
+        { key = "wild", label = "Salvaje", default = false, spells = { 20043, 20190 } },
+        { key = "cheetah", label = "Guepardo", default = false, spells = { 5118 } },
+        { key = "pack", label = "Manada", default = false, spells = { 13159 } },
+        { key = "beast", label = "Bestia", default = false, spells = { 13161 } },
+    },
+    -- En combate UNIT_AURA llega sin parar (cualquier beneficio o perjuicio):
+    -- se agrupa para no repasar las auras con cada uno.
+    CHECK_DELAY = 0.2,
 }
 
 -- Recuadro de aviso discreto (UI/NoticeBox.lua): un marco pequeño con icono y

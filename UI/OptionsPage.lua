@@ -3,12 +3,16 @@ Página de opciones
 ==================
 
 Construye una página de opciones a partir de una lista de filas descritas
-como datos, de arriba abajo. Así una pestaña de clase (UI/ClassTabs) solo
+como datos, de arriba abajo. Así una sección de clase (UI/ClassPages) solo
 dice qué opciones tiene, no cómo se dibujan.
 
 Tipos de fila:
-  { kind = "check", label, tooltip, get, set }
+  { kind = "check", label, icon, tooltip, get, set }
         casilla (UI/Checkbox.lua)
+  { kind = "checks", items = { { label, icon, tooltip, get, set }, ... } }
+        varias casillas en la misma fila, en columnas
+  { kind = "header", label }
+        título de un grupo de filas
   { kind = "columns", label, columns = { "Título 1", "Título 2" } }
         texto a la izquierda y títulos centrados sobre las columnas de cajas
   { kind = "numbers", label, tooltip, fields = { { get, set, tooltip }, ... } }
@@ -55,14 +59,26 @@ end
 
 local builders = {}
 
+function builders.checks(page, row, y)
+    local controls = {}
+    for i, item in ipairs(row.items) do
+        local cb = ns.Checkbox.Create(page, item)
+        cb:SetPoint("LEFT", page, "TOPLEFT", UI.PADDING + (i - 1) * UI.CHECK_COLUMN_WIDTH, y - UI.ROW_HEIGHT / 2)
+        controls[i] = cb
+    end
+    return controls
+end
+
 function builders.check(page, row, y)
-    local cb = ns.Checkbox.Create(page, row)
-    cb:SetPoint("LEFT", page, "TOPLEFT", UI.PADDING, y - UI.ROW_HEIGHT / 2)
-    return { cb }
+    return builders.checks(page, { items = { row } }, y)
+end
+
+function builders.header(page, row, y)
+    leftLabel(page, y, row.label, "GameFontNormalSmall")
 end
 
 function builders.columns(page, row, y)
-    leftLabel(page, y, row.label, "GameFontNormalSmall")
+    builders.header(page, row, y)
     for i, title in ipairs(row.columns) do
         local text = page:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
         text:SetPoint("CENTER", page, "TOPLEFT", columnCenter(i), y - UI.ROW_HEIGHT / 2)
@@ -76,7 +92,7 @@ function builders.numbers(page, row, y)
     leftLabel(page, y, row.label)
     local controls = {}
     for i, field in ipairs(row.fields) do
-        -- Copia para no tocar la descripción de la fila, que es de la pestaña.
+        -- Copia para no tocar la descripción de la fila, que es de la sección.
         local opts = { get = field.get, set = field.set, tooltip = field.tooltip or row.tooltip }
         local box = ns.NumberBox.Create(page, opts)
         box:SetPoint("LEFT", page, "TOPLEFT", UI.NUMBER_COLUMNS[i], y - UI.ROW_HEIGHT / 2)

@@ -16,7 +16,10 @@ en la tabla de preferencias que pasa quien lo crea.
       tooltip = { "Título", "Ayuda", ... },
   })
   box:ShowNotice(icono, "texto", "warning")
+  box:ShowIf(icono, textoONil, nivel)   -- muestra si hay texto; si no, oculta
   box:Hide()
+
+Crearlo no toca la interfaz, así que se puede hacer al cargar el archivo.
 
 El marco se crea al mostrar el primer aviso: si nunca hay nada que avisar, no
 consume nada.
@@ -120,6 +123,16 @@ function methods:ShowNotice(icon, text, level)
     if f.SetBackdropBorderColor then f:SetBackdropBorderColor(unpack(color)) end
     f.text:SetTextColor(unpack(color))
     f:Show()
+end
+
+-- Muestra el aviso si hay texto y, si no, lo oculta: así quien lo usa no
+-- repite el "si hay aviso, mostrar; si no, ocultar".
+function methods:ShowIf(icon, text, level)
+    if text then
+        self:ShowNotice(icon, text, level)
+    else
+        self:Hide()
+    end
 end
 
 function methods:Hide()

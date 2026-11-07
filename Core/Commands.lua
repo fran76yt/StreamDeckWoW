@@ -8,6 +8,7 @@ Comandos de chat
   /sdeck minimapa  ocultar o mostrar el botón del minimapa
   /sdeck aviso     apagar o encender el aviso del taunt de la mascota
   /sdeck municion  apagar o encender el aviso de munición baja
+  /sdeck aspecto   apagar o encender el aviso de aspecto
   /sdeck ayuda     versión y lista de comandos (también con cualquier otro texto)
 
 Cada subcomando es una función en la tabla "commands": añadir uno nuevo es
@@ -91,6 +92,11 @@ function commands.municion()
     Util.Print(on and "aviso de munición baja encendido." or "aviso de munición baja apagado. /sdeck municion para volver a encenderlo.")
 end
 
+function commands.aspecto()
+    local on = ns.Aspect.Toggle()
+    Util.Print(on and "aviso de aspecto encendido." or "aviso de aspecto apagado. /sdeck aspecto para volver a encenderlo.")
+end
+
 function commands.ayuda()
     Util.Print("versión %s. Comandos:", ns.Api.AddOnVersion())
     print("  /sdeck  -  estado de las teclas (también /sdeck estado)")
@@ -98,6 +104,7 @@ function commands.ayuda()
     print("  /sdeck minimapa  -  ocultar o mostrar el botón del minimapa")
     print("  /sdeck aviso  -  apagar o encender el aviso del taunt de la mascota")
     print("  /sdeck municion  -  apagar o encender el aviso de munición baja")
+    print("  /sdeck aspecto  -  apagar o encender el aviso de aspecto")
     print("  /sdeck ayuda  -  esta ayuda")
 end
 

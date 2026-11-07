@@ -11,7 +11,7 @@ en cuanto vuelves a tener suficiente.
 Los umbrales van por tipo de munición (flechas para arco y ballesta, balas
 para armas de fuego), porque no se gastan al mismo ritmo ni se compran igual.
 Los valores por defecto están en Const.AMMO.TYPES; el jugador los cambia en la
-pestaña de su clase de /sdeck config. Un umbral de aviso 0 apaga el aviso de
+sección Munición de /sdeck config. Un umbral de aviso 0 apaga el aviso de
 ese tipo.
 
 Qué munición se cuenta:
@@ -57,8 +57,7 @@ local function store(ammoType, which, value)
     local key = C.TYPES[ammoType].key
     settings.thresholds = settings.thresholds or {}
     settings.thresholds[key] = settings.thresholds[key] or {}
-    local default = C.TYPES[ammoType][which]
-    settings.thresholds[key][which] = (value ~= default) and value or nil
+    Util.SetOverride(settings.thresholds[key], which, value, C.TYPES[ammoType][which])
 end
 
 local function clamp(value)
@@ -138,32 +137,23 @@ local function noticeFor(count, ammoType)
     return "warning", ("Munición baja: %d"):format(count)
 end
 
--- El recuadro se crea al usarlo por primera vez (UI/NoticeBox.lua se carga
--- después que este archivo).
-local box
-local function getBox()
-    box = box or ns.NoticeBox.Create({
-        name = "StreamDeckWoWAmmoNotice",
-        settings = Storage.GetAmmo,
-        tooltip = {
-            "Munición",
-            "Ámbar: munición baja. Rojo: casi sin munición.",
-            "Arrástralo para moverlo.",
-            "Los umbrales se cambian en /sdeck config, pestaña de tu clase.",
-        },
-    })
-    return box
-end
+-- El marco del recuadro se crea al mostrar el primer aviso.
+local box = ns.NoticeBox.Create({
+    name = "StreamDeckWoWAmmoNotice",
+    settings = Storage.GetAmmo,
+    tooltip = {
+        "Munición",
+        "Ámbar: munición baja. Rojo: casi sin munición.",
+        "Arrástralo para moverlo.",
+        "Los umbrales se cambian en /sdeck config, sección Munición.",
+    },
+})
 
 function Ammo.Check()
     local count, icon, ammoType = currentAmmo()
     local level, text
     if count and Ammo.IsEnabled() then level, text = noticeFor(count, ammoType) end
-    if level then
-        getBox():ShowNotice(icon, text, level)
-    elseif box then
-        box:Hide()
-    end
+    box:ShowIf(icon, text, level)
 end
 
 -- Disparar gasta munición y lanza BAG_UPDATE_DELAYED a cada momento en combate:

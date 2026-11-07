@@ -2,11 +2,13 @@
 Ventana de configuración (/sdeck config)
 ========================================
 
-Una ventana con pestañas:
+Una barra lateral a la izquierda (UI/Sidebar.lua) para elegir la página y el
+contenido a la derecha:
   Teclas     un botón por hueco (SlotButton.lua), en filas, un texto de ayuda
              y un botón para recargar la interfaz.
-  <Clase>    opciones propias de la clase del personaje (UI/ClassTabs), si su
-             clase tiene pestaña. Con una sola pestaña no se muestran botones.
+  <Clase>    grupo de páginas con las opciones propias de la clase del
+             personaje (UI/ClassPages), si su clase las tiene.
+Con una sola página no hay barra lateral.
 
 Se crea la primera vez que se abre: si el jugador nunca la usa, no consume nada.
 Se redibuja sola cuando el núcleo avisa de que los huecos o las opciones han
@@ -14,20 +16,21 @@ cambiado.
 ]]
 
 local _, ns = ...
-local Const, Util = ns.Const, ns.Util
+local Const, Util, Api = ns.Const, ns.Util, ns.Api
 local UI = Const.UI
 
 local ConfigWindow = {}
 ns.ConfigWindow = ConfigWindow
 
 local frame          -- la ventana (nil hasta que se abre)
-local pages = {}     -- pages[i] = { frame, update } de la pestaña i
+local pages = {}     -- pages[i] = { frame, update } de la página i
 
 --------------------------------------------------------------------------------
 -- Disposición
 --------------------------------------------------------------------------------
 
-local function windowWidth()
+-- Ancho del contenido: el de las filas de huecos.
+local function contentWidth()
     return UI.COLUMNS * UI.SLOT_SIZE + (UI.COLUMNS - 1) * UI.SLOT_GAP + 2 * UI.PADDING
 end
 
@@ -39,7 +42,7 @@ local function slotOffset(n)
 end
 
 --------------------------------------------------------------------------------
--- Pestaña "Teclas"
+-- Página "Teclas"
 --------------------------------------------------------------------------------
 
 local function createSlots(page)
@@ -70,9 +73,10 @@ local function createReloadButton(page)
     reload:SetScript("OnClick", ReloadUI)
 end
 
--- Cada pestaña es { title, build(page) -> update }: build dibuja su contenido
--- en la página y devuelve la función que lo vuelve a leer.
-local slotsTab = {
+-- Cada página es { title, group?, groupColor?, build(page) -> update }: build
+-- dibuja su contenido y devuelve la función que lo vuelve a leer. group es el
+-- título bajo el que se agrupa en la barra lateral.
+local slotsPage = {
     title = "Teclas",
     build = function(page)
         local buttons = createSlots(page)
@@ -84,20 +88,28 @@ local slotsTab = {
     end,
 }
 
--- Pestaña de la clase del personaje, descrita como filas (UI/OptionsPage.lua).
-local function classTab()
-    local tab = ns.ClassTabs.For(ns.Api.PlayerClass())
-    if not tab then return nil end
-    return {
-        title = tab.title,
-        build = function(page) return ns.OptionsPage.Build(page, tab.rows) end,
-    }
+-- Páginas de la clase del personaje, descritas como filas (UI/OptionsPage.lua),
+-- agrupadas bajo el nombre de la clase en su color.
+local function classPages()
+    local class = Api.PlayerClass()
+    local section = ns.ClassPages.For(class)
+    local list = {}
+    if not section then return list end
+    for i, p in ipairs(section.pages) do
+        list[i] = {
+            title = p.title,
+            group = section.title,
+            groupColor = Api.ClassColor(class),
+            build = function(page) return ns.OptionsPage.Build(page, p.rows) end,
+        }
+    end
+    return list
 end
 
-local function tabList()
-    local tabs = { slotsTab }
-    tabs[#tabs + 1] = classTab()
-    return tabs
+local function pageList()
+    local list = { slotsPage }
+    for _, p in ipairs(classPages()) do list[#list + 1] = p end
+    return list
 end
 
 --------------------------------------------------------------------------------
@@ -123,9 +135,9 @@ end
 
 -- Marco de la ventana: plantilla de Blizzard con título y botón de cerrar,
 -- arrastrable y que se cierra con Escape.
-local function createFrame()
+local function createFrame(width)
     local f = CreateFrame("Frame", UI.FRAME_NAME, UIParent, "BasicFrameTemplateWithInset")
-    f:SetSize(windowWidth(), UI.HEIGHT)
+    f:SetSize(width, UI.HEIGHT)
     f:SetPoint("CENTER")
     f:SetMovable(true)
     f:EnableMouse(true)
@@ -149,36 +161,35 @@ local function createTitle(f)
         title = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
         title:SetPoint("TOP", 0, -5)
     end
-    title:SetText(("%s  %s"):format(UI.TITLE, Util.Colorize(Const.COLOR.DIM, ns.Api.AddOnVersion())))
+    title:SetText(("%s  %s"):format(UI.TITLE, Util.Colorize(Const.COLOR.DIM, Api.AddOnVersion())))
     local icon = f:CreateTexture(nil, "OVERLAY")
     icon:SetSize(UI.TITLE_ICON_SIZE, UI.TITLE_ICON_SIZE)
     icon:SetPoint("RIGHT", title, "LEFT", -UI.TITLE_ICON_GAP, 0)
     icon:SetTexture(Const.ICON)
 end
 
--- Una página (marco que ocupa toda la ventana) por pestaña.
-local function createPages(f, tabs)
-    for i, tab in ipairs(tabs) do
+-- Una página por entrada, a la derecha de la barra lateral (left es su ancho).
+local function createPages(f, list, left)
+    for i, entry in ipairs(list) do
         local page = CreateFrame("Frame", nil, f)
-        page:SetAllPoints()
-        pages[i] = { frame = page, update = tab.build(page) }
+        page:SetPoint("TOPLEFT", left, 0)
+        page:SetPoint("BOTTOMRIGHT")
+        pages[i] = { frame = page, update = entry.build(page) }
     end
 end
 
-local function createTabs(f, tabs)
-    if #tabs < 2 then return end
-    local titles = {}
-    for i, tab in ipairs(tabs) do titles[i] = tab.title end
-    ns.TabBar.Create(f, titles, showPage):Select(1)
-end
-
 local function create()
-    frame = createFrame()
+    local list = pageList()
+    local hasNav = #list > 1
+    local left = hasNav and ns.Sidebar.Width() or 0
+    frame = createFrame(left + contentWidth())
     createTitle(frame)
-    local tabs = tabList()
-    createPages(frame, tabs)
-    showPage(1)
-    createTabs(frame, tabs)
+    createPages(frame, list, left)
+    if hasNav then
+        ns.Sidebar.Create(frame, list, showPage):Select(1)
+    else
+        showPage(1)
+    end
 end
 
 --------------------------------------------------------------------------------

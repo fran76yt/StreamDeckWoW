@@ -63,6 +63,17 @@ function Api.PlayerClass()
     return select(2, UnitClass("player"))
 end
 
+-- Color de la clase (RGB 0-1), el mismo de los nombres en el chat y los
+-- marcos de grupo, o nil si el cliente no lo tiene.
+function Api.ClassColor(class)
+    local c = RAID_CLASS_COLORS and RAID_CLASS_COLORS[class]
+    return c and { c.r, c.g, c.b } or nil
+end
+
+function Api.IsDead()
+    return UnitIsDeadOrGhost("player") and true or false
+end
+
 -- Tipo de sitio en el que está: "party" (mazmorra), "raid" (banda), "pvp",
 -- "arena", "scenario"... o "none" en el mundo abierto. IsInInstance devuelve
 -- primero si está en una instancia y después el tipo.
@@ -92,6 +103,36 @@ function Api.PetActions()
         end
     end
     return actions
+end
+
+--------------------------------------------------------------------------------
+-- Auras
+--------------------------------------------------------------------------------
+
+-- Máximo de beneficios que puede llevar un personaje.
+local MAX_BUFFS = 40
+
+-- Nombre e ID de hechizo del beneficio i del jugador, o nil al acabar la
+-- lista. El cliente moderno los da en una tabla (C_UnitAuras); los antiguos,
+-- con UnitBuff, donde el ID es el décimo valor.
+local function playerBuff(i)
+    local data = call(C_UnitAuras, "GetBuffDataByIndex", "player", i)
+    if data then return data.name, data.spellId end
+    if UnitBuff then
+        local name, _, _, _, _, _, _, _, _, spellID = UnitBuff("player", i)
+        return name, spellID
+    end
+end
+
+-- Beneficios que lleva el jugador: lista de { name, spellID }.
+function Api.PlayerBuffs()
+    local buffs = {}
+    for i = 1, MAX_BUFFS do
+        local name, spellID = playerBuff(i)
+        if not name then break end
+        buffs[#buffs + 1] = { name = name, spellID = spellID }
+    end
+    return buffs
 end
 
 --------------------------------------------------------------------------------

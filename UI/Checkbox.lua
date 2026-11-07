@@ -9,6 +9,8 @@ la refleja.
 
   local check = ns.Checkbox.Create(parent, {
       label = "Texto",
+      icon = textura,   -- opcional, delante del texto; o una función que la
+                        -- devuelva, si solo se puede pedir con el juego cargado
       tooltip = { "Título", "Línea de ayuda", ... },
       get = function() return valor end,
       set = function(valor) ... end,
@@ -17,7 +19,7 @@ la refleja.
 ]]
 
 local _, ns = ...
-local UI = ns.Const.UI
+local UI, Util = ns.Const.UI, ns.Util
 
 local Checkbox = {}
 ns.Checkbox = Checkbox
@@ -33,6 +35,14 @@ local function onClick(self)
     self.opts.set(self:GetChecked() and true or false)
     -- Se vuelve a leer: si el módulo no aceptó el cambio, la casilla no miente.
     self:Update()
+end
+
+-- Texto de la casilla, con el icono delante si lo tiene.
+local function labelText(opts)
+    local icon = opts.icon
+    if type(icon) == "function" then icon = icon() end
+    if not icon then return opts.label end
+    return Util.IconText(icon, UI.CHECK_ICON_SIZE) .. " " .. opts.label
 end
 
 -- La plantilla de Blizzard trae su propio texto (.Text) en el cliente moderno;
@@ -51,7 +61,7 @@ function Checkbox.Create(parent, opts)
     cb:SetSize(UI.CHECK_SIZE, UI.CHECK_SIZE)
     cb.opts = opts
     for name, fn in pairs(methods) do cb[name] = fn end
-    setLabel(cb, opts.label)
+    setLabel(cb, labelText(opts))
     cb:SetScript("OnClick", onClick)
     ns.Tooltip.Attach(cb, opts.tooltip)
     cb:Update()
