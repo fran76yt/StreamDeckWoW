@@ -55,12 +55,14 @@ UI\NoticeBox.lua
 Features\PetTaunt.lua
 Features\Ammo.lua
 Features\Aspect.lua
+Features\Merchant.lua
 #   Interfaz
 UI\SlotButton.lua
 UI\Checkbox.lua
 UI\NumberBox.lua
 UI\OptionsPage.lua
 UI\Sidebar.lua
+UI\GeneralPage.lua
 #   Secciones por clase de la ventana: registro y una por clase
 UI\ClassPages\ClassPages.lua
 UI\ClassPages\Hunter.lua

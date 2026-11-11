@@ -6,9 +6,10 @@ Una barra lateral a la izquierda (UI/Sidebar.lua) para elegir la página y el
 contenido a la derecha:
   Teclas     un botón por hueco (SlotButton.lua), en filas, un texto de ayuda
              y un botón para recargar la interfaz.
+  General    opciones para cualquier clase (UI/GeneralPage.lua).
   <Clase>    grupo de páginas con las opciones propias de la clase del
              personaje (UI/ClassPages), si su clase las tiene.
-Con una sola página no hay barra lateral.
+Con una sola página no habría barra lateral.
 
 Se crea la primera vez que se abre: si el jugador nunca la usa, no consume nada.
 Se redibuja sola cuando el núcleo avisa de que los huecos o las opciones han
@@ -88,26 +89,32 @@ local slotsPage = {
     end,
 }
 
--- Páginas de la clase del personaje, descritas como filas (UI/OptionsPage.lua),
--- agrupadas bajo el nombre de la clase en su color.
+-- Página de opciones descrita como filas (UI/OptionsPage.lua): { title, rows }.
+-- group y groupColor, si la página va dentro de un grupo de la barra lateral.
+local function optionsPage(p, group, groupColor)
+    return {
+        title = p.title,
+        group = group,
+        groupColor = groupColor,
+        build = function(page) return ns.OptionsPage.Build(page, p.rows) end,
+    }
+end
+
+-- Páginas de la clase del personaje, agrupadas bajo el nombre de la clase en
+-- su color.
 local function classPages()
     local class = Api.PlayerClass()
     local section = ns.ClassPages.For(class)
     local list = {}
     if not section then return list end
     for i, p in ipairs(section.pages) do
-        list[i] = {
-            title = p.title,
-            group = section.title,
-            groupColor = Api.ClassColor(class),
-            build = function(page) return ns.OptionsPage.Build(page, p.rows) end,
-        }
+        list[i] = optionsPage(p, section.title, Api.ClassColor(class))
     end
     return list
 end
 
 local function pageList()
-    local list = { slotsPage }
+    local list = { slotsPage, optionsPage(ns.GeneralPage) }
     for _, p in ipairs(classPages()) do list[#list + 1] = p end
     return list
 end

@@ -57,6 +57,11 @@ end
 -- Control de tiempo y de combate
 --------------------------------------------------------------------------------
 
+-- Ejecuta fn dentro de "delay" segundos.
+function Util.After(delay, fn)
+    C_Timer.After(delay, fn)
+end
+
 -- Devuelve una versión de fn que, por muchas veces que se llame seguidas,
 -- solo se ejecuta una vez, "delay" segundos después de la primera llamada.
 function Util.Debounce(delay, fn)
@@ -64,7 +69,7 @@ function Util.Debounce(delay, fn)
     return function()
         if queued then return end
         queued = true
-        C_Timer.After(delay, function()
+        Util.After(delay, function()
             queued = false
             fn()
         end)

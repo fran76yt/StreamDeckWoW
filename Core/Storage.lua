@@ -43,6 +43,10 @@ Estructura:
                anytime  true si avisa también fuera de combate
                chosen   aspectos que valen, solo los cambiados respecto a
                         Const.ASPECT.LIST: { hawk = false, wild = true }
+  repair     reparar solo al abrir un vendedor (tampoco las lee):
+               off      true si el jugador lo ha apagado
+  junk       vender la basura sola al abrir un vendedor (tampoco las lee):
+               off      true si el jugador lo ha apagado
 ]]
 
 local _, ns = ...
@@ -102,4 +106,12 @@ end
 
 function Storage.GetAspect()
     return section("aspect")
+end
+
+function Storage.GetRepair()
+    return section("repair")
+end
+
+function Storage.GetJunk()
+    return section("junk")
 end

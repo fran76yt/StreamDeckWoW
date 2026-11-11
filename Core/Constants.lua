@@ -210,6 +210,16 @@ Const.ASPECT = {
     CHECK_DELAY = 0.2,
 }
 
+-- Vendedor (Features/Merchant.lua): reparar y vender la basura al hablar con
+-- uno. La basura es la calidad pobre (los objetos grises). Se vende en tandas,
+-- con una pausa entre ellas: el servidor descarta ventas si llegan demasiadas
+-- de golpe, y así cada tanda ya ve las anteriores hechas.
+Const.MERCHANT = {
+    JUNK_QUALITY = 0,
+    SELL_BATCH = 10,
+    SELL_INTERVAL = 0.2,
+}
+
 -- Recuadro de aviso discreto (UI/NoticeBox.lua): un marco pequeño con icono y
 -- texto, que el jugador puede mover. Colores del borde (RGB 0-1) por nivel.
 Const.NOTICE = {

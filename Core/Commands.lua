@@ -9,6 +9,8 @@ Comandos de chat
   /sdeck aviso     apagar o encender el aviso del taunt de la mascota
   /sdeck municion  apagar o encender el aviso de munición baja
   /sdeck aspecto   apagar o encender el aviso de aspecto
+  /sdeck reparar   apagar o encender reparar al abrir un vendedor
+  /sdeck basura    apagar o encender vender la basura al abrir un vendedor
   /sdeck ayuda     versión y lista de comandos (también con cualquier otro texto)
 
 Cada subcomando es una función en la tabla "commands": añadir uno nuevo es
@@ -97,6 +99,16 @@ function commands.aspecto()
     Util.Print(on and "aviso de aspecto encendido." or "aviso de aspecto apagado. /sdeck aspecto para volver a encenderlo.")
 end
 
+function commands.reparar()
+    local on = ns.Merchant.ToggleRepair()
+    Util.Print(on and "reparar al abrir un vendedor: encendido." or "reparar al abrir un vendedor: apagado. /sdeck reparar para volver a encenderlo.")
+end
+
+function commands.basura()
+    local on = ns.Merchant.ToggleJunk()
+    Util.Print(on and "vender la basura al abrir un vendedor: encendido." or "vender la basura al abrir un vendedor: apagado. /sdeck basura para volver a encenderlo.")
+end
+
 function commands.ayuda()
     Util.Print("versión %s. Comandos:", ns.Api.AddOnVersion())
     print("  /sdeck  -  estado de las teclas (también /sdeck estado)")
@@ -105,6 +117,8 @@ function commands.ayuda()
     print("  /sdeck aviso  -  apagar o encender el aviso del taunt de la mascota")
     print("  /sdeck municion  -  apagar o encender el aviso de munición baja")
     print("  /sdeck aspecto  -  apagar o encender el aviso de aspecto")
+    print("  /sdeck reparar  -  apagar o encender reparar al abrir un vendedor")
+    print("  /sdeck basura  -  apagar o encender vender la basura al abrir un vendedor")
     print("  /sdeck ayuda  -  esta ayuda")
 end
 

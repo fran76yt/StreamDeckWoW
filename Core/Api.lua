@@ -3,7 +3,7 @@ Capa de acceso a la API de WoW
 ==============================
 
 El resto del addon no llama directamente a la API del juego para hechizos,
-objetos, macros o el cursor: pasa por estas funciones. Motivos:
+objetos, macros, el cursor o los vendedores: pasa por estas funciones. Motivos:
 
   * WoW Forever usa el cliente moderno, donde muchas funciones globales
     clásicas se movieron a espacios de nombres (C_Spell, C_Item, C_SpellBook).
@@ -11,9 +11,9 @@ objetos, macros o el cursor: pasa por estas funciones. Motivos:
   * Se usa la API moderna. Donde existe una equivalente clásica (hechizo
     conocido, número de objetos, metadatos del addon) se usa como respaldo; el
     resto de funciones de los espacios C_* devuelve nil si no existe, en lugar
-    de dar un error de Lua. Las de macros, cursor, jugador y mascota
-    (GetMacroInfo, GetCursorInfo, UnitClass, GetPetActionInfo...) existen en
-    todos los clientes y se usan tal cual.
+    de dar un error de Lua. Las de macros, cursor, jugador, mascota y
+    vendedor (GetMacroInfo, GetCursorInfo, UnitClass, GetPetActionInfo,
+    RepairAllItems...) existen en todos los clientes y se usan tal cual.
   * Para probar el addon fuera del juego basta con simular estas funciones.
 ]]
 
@@ -241,22 +241,104 @@ function Api.EquippedItem(slot)
     return GetInventoryItemID("player", slot)
 end
 
--- Todo lo que hay en las bolsas (la mochila es la 0; carcajes y bolsas de
--- munición cuentan como bolsas): lista de { id, count }.
-function Api.BagItems()
+-- Llama a fn(bolsa, hueco, info) por cada hueco ocupado de las bolsas (la
+-- mochila es la 0; carcajes y bolsas de munición cuentan como bolsas). info es
+-- la tabla de C_Container.GetContainerItemInfo (itemID, stackCount, quality,
+-- isLocked, hasNoValue...). Sin C_Container no recorre nada.
+local function eachBagSlot(fn)
     local numSlots = apiFunction(C_Container, "GetContainerNumSlots") or GetContainerNumSlots
     local slotInfo = apiFunction(C_Container, "GetContainerItemInfo")
-    local items = {}
-    if not numSlots or not slotInfo then return items end
+    if not numSlots or not slotInfo then return end
     for bag = 0, NUM_BAG_SLOTS or 4 do
         for slot = 1, numSlots(bag) or 0 do
             local info = slotInfo(bag, slot)
-            if info and info.itemID then
-                items[#items + 1] = { id = info.itemID, count = info.stackCount or 1 }
-            end
+            if info and info.itemID then fn(bag, slot, info) end
         end
     end
+end
+
+-- Todo lo que hay en las bolsas: lista de { id, count }.
+function Api.BagItems()
+    local items = {}
+    eachBagSlot(function(_, _, info)
+        items[#items + 1] = { id = info.itemID, count = info.stackCount or 1 }
+    end)
     return items
+end
+
+-- Cada hueco ocupado con su posición: lista de { bag, slot, id, count,
+-- quality, locked, noValue }. locked es que el juego lo está moviendo o
+-- vendiendo; noValue, que ningún vendedor lo compra.
+function Api.BagSlots()
+    local slots = {}
+    eachBagSlot(function(bag, slot, info)
+        slots[#slots + 1] = {
+            bag = bag, slot = slot, id = info.itemID, count = info.stackCount or 1,
+            quality = info.quality, locked = info.isLocked, noValue = info.hasNoValue,
+        }
+    end)
+    return slots
+end
+
+-- Precio al que lo compra un vendedor, por unidad, en cobre (0 si no se sabe:
+-- objeto aún sin cargar). Es el undécimo valor de GetItemInfo.
+function Api.SellPrice(id)
+    local getInfo = apiFunction(C_Item, "GetItemInfo") or GetItemInfo
+    return (getInfo and select(11, getInfo(id))) or 0
+end
+
+--------------------------------------------------------------------------------
+-- Vendedor y dinero
+--------------------------------------------------------------------------------
+
+function Api.Money()
+    return GetMoney()
+end
+
+-- Dinero en texto sin iconos, sin las monedas a cero salvo que no haya nada:
+-- "1o 5c", "20p", "0c".
+local function plainMoney(copper)
+    local parts = {}
+    local amounts = { { math.floor(copper / 10000), "o" }, { math.floor(copper / 100) % 100, "p" }, { copper % 100, "c" } }
+    for _, a in ipairs(amounts) do
+        if a[1] > 0 then parts[#parts + 1] = a[1] .. a[2] end
+    end
+    return #parts > 0 and table.concat(parts, " ") or "0c"
+end
+
+-- Cantidad de dinero legible con los iconos de oro, plata y cobre del juego,
+-- o en texto si el cliente no tiene la función.
+function Api.MoneyText(copper)
+    local coins = apiFunction(C_CurrencyInfo, "GetCoinTextureString") or GetCoinTextureString
+    if coins then return coins(copper) end
+    return plainMoney(copper)
+end
+
+-- Si el vendedor abierto repara. Los clientes antiguos devuelven 1 o nil.
+function Api.MerchantCanRepair()
+    local can = CanMerchantRepair()
+    return can == true or can == 1
+end
+
+-- Lo que cuesta reparar todo el equipo (0 si no hay nada roto).
+function Api.RepairCost()
+    return GetRepairAllCost() or 0
+end
+
+-- Repara todo con el dinero del personaje (no con el del banco de hermandad).
+function Api.RepairAll()
+    RepairAllItems()
+end
+
+-- Con el vendedor abierto, "usar" un objeto de las bolsas es vendérselo.
+function Api.SellBagItem(bag, slot)
+    local use = apiFunction(C_Container, "UseContainerItem") or UseContainerItem
+    use(bag, slot)
+end
+
+-- Mayúsculas pulsadas: para saltarse lo automático al abrir el vendedor.
+function Api.IsShiftDown()
+    return IsShiftKeyDown()
 end
 
 --------------------------------------------------------------------------------

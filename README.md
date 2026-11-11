@@ -145,9 +145,9 @@ Todos los archivos del addon reciben la misma tabla privada (`local _, ns = ...`
 | Archivo | Responsabilidad |
 |---|---|
 | [`Core/Constants.lua`](Core/Constants.lua) | Todos los valores fijos: número de huecos, modificadores del atajo, eventos, colores, medidas de la ventana y del botón del minimapa, los IDs del taunt de la mascota y de los aspectos |
-| [`Core/Util.lua`](Core/Util.lua) | Utilidades genéricas, reutilizables en otros addons (solo dependen de las constantes): suscripción a eventos, mensajes entre módulos, *debounce*, ejecutar fuera de combate, interruptores de opciones (`Util.Switch`), guardar solo lo que difiere del valor por defecto (`Util.SetOverride`), escribir en el chat |
+| [`Core/Util.lua`](Core/Util.lua) | Utilidades genéricas, reutilizables en otros addons (solo dependen de las constantes): suscripción a eventos, mensajes entre módulos, temporizadores y *debounce*, ejecutar fuera de combate, interruptores de opciones (`Util.Switch`), guardar solo lo que difiere del valor por defecto (`Util.SetOverride`), escribir en el chat |
 | [`Core/Keys.lua`](Core/Keys.lua) | Traduce un hueco a su atajo (`ALT-CTRL-SHIFT-F3`) y a su texto legible (`Ctrl+Alt+Mayús+F3`) |
-| [`Core/Api.lua`](Core/Api.lua) | Única puerta a la API del juego para hechizos, objetos, equipo y bolsas, macros, cursor, mascota, beneficios (auras) del jugador, tipo de instancia, avisos en pantalla y metadatos. Usa la API moderna (`C_Spell`, `C_Item`, `C_SpellBook`); donde hay una equivalente clásica (hechizo conocido, número de objetos, metadatos) la usa como respaldo, y si falta una función de hechizos u objetos devuelve vacío en lugar de dar un error de Lua (las de macros, cursor, jugador y mascota se usan directamente) |
+| [`Core/Api.lua`](Core/Api.lua) | Única puerta a la API del juego para hechizos, objetos, equipo y bolsas, macros, cursor, mascota, beneficios (auras) del jugador, vendedores y dinero, tipo de instancia, avisos en pantalla y metadatos. Usa la API moderna (`C_Spell`, `C_Item`, `C_SpellBook`); donde hay una equivalente clásica (hechizo conocido, número de objetos, metadatos) la usa como respaldo, y si falta una función de hechizos u objetos devuelve vacío en lugar de dar un error de Lua (las de macros, cursor, jugador y mascota se usan directamente) |
 | [`Core/Storage.lua`](Core/Storage.lua) | Único módulo que toca la variable guardada `StreamDeckWoWChar` (huecos y preferencias del botón del minimapa y de cada aviso) |
 | [`Defaults/Defaults.lua`](Defaults/Defaults.lua) | Registro de valores por defecto: comunes y por clase |
 | [`Defaults/Common.lua`](Defaults/Common.lua) | Huecos comunes a todas las clases |
@@ -157,6 +157,7 @@ Todos los archivos del addon reciben la misma tabla privada (`local _, ns = ...`
 | [`Features/PetTaunt.lua`](Features/PetTaunt.lua) | Aviso del taunt de la mascota: comprueba el lanzamiento automático de Bramido al cambiar de zona, de mascota o al entrar en combate |
 | [`Features/Ammo.lua`](Features/Ammo.lua) | Aviso de munición baja: cuenta las flechas o balas que sirven para el arma a distancia y muestra u oculta el recuadro |
 | [`Features/Aspect.lua`](Features/Aspect.lua) | Aviso de aspecto: mira qué aspecto llevas y muestra u oculta el recuadro según los aspectos elegidos y si estás en combate |
+| [`Features/Merchant.lua`](Features/Merchant.lua) | Al abrir un vendedor: vende la basura en tandas y después repara el equipo |
 | [`UI/SlotButton.lua`](UI/SlotButton.lua) | Componente de botón de hueco: icono, arrastrar y soltar, tooltip |
 | [`UI/Tooltip.lua`](UI/Tooltip.lua) | Tooltips de ayuda (título y líneas en gris) que comparten todos los componentes |
 | [`UI/Checkbox.lua`](UI/Checkbox.lua) | Componente de casilla: lee y escribe su estado a través de funciones del módulo que la usa, sin guardar nada por sí misma |
@@ -164,6 +165,7 @@ Todos los archivos del addon reciben la misma tabla privada (`local _, ns = ...`
 | [`UI/NoticeBox.lua`](UI/NoticeBox.lua) | Componente de recuadro de aviso discreto: icono, texto, borde del color del nivel y posición movible que se guarda |
 | [`UI/OptionsPage.lua`](UI/OptionsPage.lua) | Dibuja una página de opciones a partir de filas descritas como datos (casillas sueltas o en columnas con icono, cajas numéricas, títulos, notas) |
 | [`UI/Sidebar.lua`](UI/Sidebar.lua) | Barra lateral de navegación de la ventana: entradas agrupadas bajo títulos, dibujada con texturas de color liso |
+| [`UI/GeneralPage.lua`](UI/GeneralPage.lua) | Página **General**: opciones para cualquier clase (reparar y vender la basura), solo como filas de datos |
 | [`UI/ClassPages/ClassPages.lua`](UI/ClassPages/ClassPages.lua) | Registro de secciones por clase (un grupo de páginas cada una) |
 | [`UI/ClassPages/Hunter.lua`](UI/ClassPages/Hunter.lua) | Sección **Cazador**: páginas Mascota, Munición y Aspectos, solo como filas de datos |
 | [`UI/ConfigWindow.lua`](UI/ConfigWindow.lua) | La ventana `/sdeck config`: barra lateral con la página **Teclas** y, si existe, la sección de la clase del personaje |
@@ -330,6 +332,8 @@ StreamDeckWoWChar = {
             ["wild"] = true,
         },
     },
+    ["repair"] = { ["off"] = true },    -- reparar solo, si lo has apagado (solo para el addon)
+    ["junk"] = { ["off"] = true },      -- vender la basura, si lo has apagado (solo para el addon)
 }
 ```
 
@@ -345,7 +349,7 @@ Casos de cada hueco en `slots`:
 
 Si el cliente todavía no tiene un objeto en caché, el atajo se asigna con `"item:<id>"`, pero en la foto `name` queda vacío (y `short` también, si el hueco no tiene texto propio) hasta que el servidor envía los datos; `/sdeck` lo muestra como «objeto <id> (cargando datos)».
 
-El plugin solo usa `slots` (y `class`, para su registro). `custom`, `minimap`, `petTaunt`, `ammo` y `aspect` son para el propio addon.
+El plugin solo usa `slots` (y `class`, para su registro). `custom`, `minimap`, `petTaunt`, `ammo`, `aspect`, `repair` y `junk` son para el propio addon.
 
 ---
 
@@ -459,6 +463,8 @@ Puedes montarlo a mano en la aplicación de Stream Deck: arrastra **Hueco WoW** 
 | `/sdeck aviso` | Apaga o enciende el aviso del taunt de la mascota; se recuerda por personaje |
 | `/sdeck municion` | Apaga o enciende el aviso de munición baja; se recuerda por personaje |
 | `/sdeck aspecto` | Apaga o enciende el aviso de aspecto; se recuerda por personaje |
+| `/sdeck reparar` | Apaga o enciende reparar al abrir un vendedor; se recuerda por personaje |
+| `/sdeck basura` | Apaga o enciende vender la basura al abrir un vendedor; se recuerda por personaje |
 | `/sdeck ayuda` | Versión del addon y lista de comandos (también sale con cualquier otro texto) |
 
 ### Botón del minimapa
@@ -529,6 +535,19 @@ Otro recuadro discreto, como el de la munición, para no pelear sin aspecto o co
 
 Los IDs de todos los rangos están en `Const.ASPECT` ([`Core/Constants.lua`](Core/Constants.lua)), comprobados en Wowhead Forever. Sin verificar en Forever: que su cliente dé las auras con `C_UnitAuras` (si no, se usa `UnitBuff`).
 
+### Reparar y vender la basura
+
+Para cualquier clase. Al abrir un vendedor, sin tocar nada:
+
+1. **Vende la basura**: los objetos grises que el vendedor compra. Nunca nada blanco o mejor, aunque valga poco.
+2. **Repara todo el equipo**, si el vendedor repara y te llega el dinero. Va después de vender, para contar ya con lo que da la basura.
+
+Las dos se cuentan en el chat («basura vendida: 7 objetos por 1p 20c», «equipo reparado por 3p 4c»); si no te llega para reparar, también lo dice. La basura se vende en tandas de 10 con una pausa corta entre ellas, porque el servidor descarta ventas si llegan muchas de golpe; si cierras el vendedor a medias, para.
+
+- **Abre el vendedor con Mayús pulsada** para que no haga nada, por si quieres vender a mano.
+- Repara con tu dinero, no con el del banco de hermandad.
+- Cada una se apaga o enciende en **General** de `/sdeck config`, o con `/sdeck reparar` y `/sdeck basura`. Las dos vienen encendidas.
+
 ### Ventana de configuración
 
 <p align="center"><code>/sdeck config</code> o clic en el botón del minimapa</p>
@@ -536,7 +555,8 @@ Los IDs de todos los rangos están en `Const.ASPECT` ([`Core/Constants.lua`](Cor
 A la izquierda, una **barra lateral** para elegir la página; la elegida se marca en dorado:
 
 - **Teclas:** los 12 huecos, para todas las clases.
-- **La sección de tu clase**, si la tiene, bajo su nombre en el color de la clase. De momento solo existe **Cazador**, con tres páginas: **Mascota** (aviso del taunt), **Munición** (aviso y umbrales por tipo de arma) y **Aspectos** (aviso y qué aspectos valen). Cada personaje ve solo la de su clase; si su clase no tiene, la ventana se queda sin barra lateral.
+- **General:** opciones para todas las clases: reparar y vender la basura al abrir un vendedor.
+- **La sección de tu clase**, si la tiene, bajo su nombre en el color de la clase. De momento solo existe **Cazador**, con tres páginas: **Mascota** (aviso del taunt), **Munición** (aviso y umbrales por tipo de arma) y **Aspectos** (aviso y qué aspectos valen). Cada personaje ve solo la de su clase.
 
 En la página **Teclas**:
 
@@ -610,7 +630,8 @@ StreamDeckWoW/                         ← carpeta del addon (raíz del reposito
 ├── Features/                          funciones extra, independientes de las teclas
 │   ├── PetTaunt.lua                   aviso del taunt de la mascota
 │   ├── Ammo.lua                       aviso de munición baja
-│   └── Aspect.lua                     aviso de aspecto
+│   ├── Aspect.lua                     aviso de aspecto
+│   └── Merchant.lua                   reparar y vender la basura
 ├── UI/                                interfaz
 │   ├── Tooltip.lua                    tooltips de ayuda compartidos
 │   ├── SlotButton.lua                 botón de hueco
@@ -619,6 +640,7 @@ StreamDeckWoW/                         ← carpeta del addon (raíz del reposito
 │   ├── NoticeBox.lua                  recuadro de aviso discreto
 │   ├── OptionsPage.lua                página de opciones descrita como filas
 │   ├── Sidebar.lua                    barra lateral de la ventana
+│   ├── GeneralPage.lua                página General
 │   ├── ClassPages/                    una sección de páginas por clase
 │   │   ├── ClassPages.lua             registro
 │   │   └── Hunter.lua                 cazador
