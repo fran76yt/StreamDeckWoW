@@ -2,6 +2,9 @@
 Tooltips de ayuda
 =================
 
+Archivo compartido con StreamDeckWoW: se edita en FranTools y se copia con
+tools/sync_shared.py.
+
 Los componentes de la interfaz (casillas, cajas, recuadros, botón del
 minimapa) muestran el mismo tipo de tooltip: un título y unas líneas de ayuda
 en gris. Esta función lo hace una vez para todos.

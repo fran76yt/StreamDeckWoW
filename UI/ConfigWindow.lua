@@ -2,18 +2,12 @@
 Ventana de configuración (/sdeck config)
 ========================================
 
-Una barra lateral a la izquierda (UI/Sidebar.lua) para elegir la página y el
-contenido a la derecha:
-  Teclas     un botón por hueco (SlotButton.lua), en filas, un texto de ayuda
-             y un botón para recargar la interfaz.
-  General    opciones para cualquier clase (UI/GeneralPage.lua).
-  <Clase>    grupo de páginas con las opciones propias de la clase del
-             personaje (UI/ClassPages), si su clase las tiene.
-Con una sola página no habría barra lateral.
+Un botón por hueco (SlotButton.lua), en filas, un texto de ayuda y un botón
+para recargar la interfaz. Las opciones de los avisos y demás funciones que
+no son de las teclas están en el addon FranTools (/fran).
 
 Se crea la primera vez que se abre: si el jugador nunca la usa, no consume nada.
-Se redibuja sola cuando el núcleo avisa de que los huecos o las opciones han
-cambiado.
+Se redibuja sola cuando el núcleo avisa de que los huecos han cambiado.
 ]]
 
 local _, ns = ...
@@ -24,14 +18,14 @@ local ConfigWindow = {}
 ns.ConfigWindow = ConfigWindow
 
 local frame          -- la ventana (nil hasta que se abre)
-local pages = {}     -- pages[i] = { frame, update } de la página i
+local buttons        -- un botón por hueco
 
 --------------------------------------------------------------------------------
 -- Disposición
 --------------------------------------------------------------------------------
 
--- Ancho del contenido: el de las filas de huecos.
-local function contentWidth()
+-- Ancho de la ventana: el de las filas de huecos.
+local function frameWidth()
     return UI.COLUMNS * UI.SLOT_SIZE + (UI.COLUMNS - 1) * UI.SLOT_GAP + 2 * UI.PADDING
 end
 
@@ -43,17 +37,17 @@ local function slotOffset(n)
 end
 
 --------------------------------------------------------------------------------
--- Página "Teclas"
+-- Contenido
 --------------------------------------------------------------------------------
 
 local function createSlots(page)
-    local buttons = {}
+    local list = {}
     for n = 1, Const.NUM_SLOTS do
         local b = ns.SlotButton.Create(page, n)
         b:SetPoint("TOPLEFT", slotOffset(n))
-        buttons[n] = b
+        list[n] = b
     end
-    return buttons
+    return list
 end
 
 local function createHelp(page)
@@ -74,66 +68,13 @@ local function createReloadButton(page)
     reload:SetScript("OnClick", ReloadUI)
 end
 
--- Cada página es { title, group?, groupColor?, build(page) -> update }: build
--- dibuja su contenido y devuelve la función que lo vuelve a leer. group es el
--- título bajo el que se agrupa en la barra lateral.
-local slotsPage = {
-    title = "Teclas",
-    build = function(page)
-        local buttons = createSlots(page)
-        createHelp(page)
-        createReloadButton(page)
-        return function()
-            for _, b in ipairs(buttons) do b:Update() end
-        end
-    end,
-}
-
--- Página de opciones descrita como filas (UI/OptionsPage.lua): { title, rows }.
--- group y groupColor, si la página va dentro de un grupo de la barra lateral.
-local function optionsPage(p, group, groupColor)
-    return {
-        title = p.title,
-        group = group,
-        groupColor = groupColor,
-        build = function(page) return ns.OptionsPage.Build(page, p.rows) end,
-    }
-end
-
--- Páginas de la clase del personaje, agrupadas bajo el nombre de la clase en
--- su color.
-local function classPages()
-    local class = Api.PlayerClass()
-    local section = ns.ClassPages.For(class)
-    local list = {}
-    if not section then return list end
-    for i, p in ipairs(section.pages) do
-        list[i] = optionsPage(p, section.title, Api.ClassColor(class))
-    end
-    return list
-end
-
-local function pageList()
-    local list = { slotsPage, optionsPage(ns.GeneralPage) }
-    for _, p in ipairs(classPages()) do list[#list + 1] = p end
-    return list
-end
-
 --------------------------------------------------------------------------------
 -- Dibujado
 --------------------------------------------------------------------------------
 
--- Vuelve a leer las páginas visibles. Las ocultas se leen al mostrarlas.
 local function refresh()
     if not frame or not frame:IsShown() then return end
-    for _, p in ipairs(pages) do
-        if p.frame:IsShown() then p.update() end
-    end
-end
-
-local function showPage(index)
-    for i, p in ipairs(pages) do p.frame:SetShown(i == index) end
-    refresh()
+    for _, b in ipairs(buttons) do b:Update() end
 end
 
 --------------------------------------------------------------------------------
@@ -175,28 +116,12 @@ local function createTitle(f)
     icon:SetTexture(Const.ICON)
 end
 
--- Una página por entrada, a la derecha de la barra lateral (left es su ancho).
-local function createPages(f, list, left)
-    for i, entry in ipairs(list) do
-        local page = CreateFrame("Frame", nil, f)
-        page:SetPoint("TOPLEFT", left, 0)
-        page:SetPoint("BOTTOMRIGHT")
-        pages[i] = { frame = page, update = entry.build(page) }
-    end
-end
-
 local function create()
-    local list = pageList()
-    local hasNav = #list > 1
-    local left = hasNav and ns.Sidebar.Width() or 0
-    frame = createFrame(left + contentWidth())
+    frame = createFrame(frameWidth())
     createTitle(frame)
-    createPages(frame, list, left)
-    if hasNav then
-        ns.Sidebar.Create(frame, list, showPage):Select(1)
-    else
-        showPage(1)
-    end
+    buttons = createSlots(frame)
+    createHelp(frame)
+    createReloadButton(frame)
 end
 
 --------------------------------------------------------------------------------
@@ -209,5 +134,3 @@ function ConfigWindow.Toggle()
 end
 
 Util.Listen(Const.MSG.SLOTS_UPDATED, refresh)
--- Una opción cambiada con un comando (/sdeck aviso...) se ve en su casilla.
-Util.Listen(Const.MSG.SETTINGS_CHANGED, refresh)

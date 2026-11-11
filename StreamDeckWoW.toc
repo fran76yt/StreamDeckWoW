@@ -34,7 +34,7 @@
 ## SavedVariablesPerCharacter: StreamDeckWoWChar
 
 # Orden de carga: cada módulo usa los que se han cargado antes que él.
-#   Constantes y utilidades genéricas
+#   Constantes y utilidades genéricas (Util y Api, compartidas con FranTools)
 Core\Constants.lua
 Core\Util.lua
 #   Acceso a la API del juego y datos
@@ -48,25 +48,12 @@ Defaults\Classes\Hunter.lua
 #   Lógica
 Core\Slots.lua
 Core\Bindings.lua
-#   Componentes de interfaz que usan también las funciones extra
-UI\Tooltip.lua
-UI\NoticeBox.lua
-#   Funciones extra
-Features\PetTaunt.lua
-Features\Ammo.lua
-Features\Aspect.lua
-Features\Merchant.lua
 #   Interfaz
+UI\Tooltip.lua
 UI\SlotButton.lua
-UI\Checkbox.lua
-UI\NumberBox.lua
-UI\OptionsPage.lua
-UI\Sidebar.lua
-UI\GeneralPage.lua
-#   Secciones por clase de la ventana: registro y una por clase
-UI\ClassPages\ClassPages.lua
-UI\ClassPages\Hunter.lua
 UI\ConfigWindow.lua
+#   Botón del minimapa (componente compartido y el de este addon)
 UI\MinimapButton.lua
+UI\Minimap.lua
 #   Comandos de chat (usa todo lo anterior)
 Core\Commands.lua

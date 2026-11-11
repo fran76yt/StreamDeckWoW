@@ -24,6 +24,8 @@ El proyecto tiene tres piezas que trabajan juntas:
 | **Plugin WoW Deck** | Plugin de Stream Deck que pinta cada tecla con el icono correcto y envía el atajo al pulsarla | [`StreamDeck/com.fsegado.wowdeck.sdPlugin`](StreamDeck/com.fsegado.wowdeck.sdPlugin) |
 | **Perfil «WoW Forever»** | Perfil de Stream Deck + que se activa solo al poner WoW en primer plano | Se genera con [`StreamDeck/profile`](StreamDeck/profile) |
 
+Los avisos del cazador (taunt de la mascota, munición, aspecto), reparar y vender la basura y el agro en las barras de nombre estuvieron un tiempo aquí; ahora son un addon aparte, **[FranTools](https://github.com/fran76yt/FranTools)**, que sirve también sin Stream Deck. Los dos comparten parte del código (ver [§4](#4-el-addon-por-dentro)).
+
 > **Estado:** versión **0.1.0**, en pruebas. Probado dentro del juego con WoW Forever 1.60.1 y Stream Deck 7.6.1: el addon carga sin marcarse como incompatible, y el botón del minimapa, la ventana de configuración y las teclas funcionan. Además, cada parte tiene pruebas automáticas sobre una API del juego simulada, que cubren también casos difíciles de provocar a mano (combate, objetos sin cargar, fallos del plugin).
 
 ---
@@ -144,33 +146,24 @@ Todos los archivos del addon reciben la misma tabla privada (`local _, ns = ...`
 
 | Archivo | Responsabilidad |
 |---|---|
-| [`Core/Constants.lua`](Core/Constants.lua) | Todos los valores fijos: número de huecos, modificadores del atajo, eventos, colores, medidas de la ventana y del botón del minimapa, los IDs del taunt de la mascota y de los aspectos |
-| [`Core/Util.lua`](Core/Util.lua) | Utilidades genéricas, reutilizables en otros addons (solo dependen de las constantes): suscripción a eventos, mensajes entre módulos, temporizadores y *debounce*, ejecutar fuera de combate, interruptores de opciones (`Util.Switch`), guardar solo lo que difiere del valor por defecto (`Util.SetOverride`), escribir en el chat |
+| [`Core/Constants.lua`](Core/Constants.lua) | Todos los valores fijos: número de huecos, modificadores del atajo, eventos, colores, medidas de la ventana y del botón del minimapa |
+| [`Core/Util.lua`](Core/Util.lua) | *Compartido con FranTools.* Utilidades genéricas (solo dependen de las constantes): suscripción a eventos, mensajes entre módulos, temporizadores y *debounce*, ejecutar fuera de combate, interruptores de opciones (`Util.Switch`), guardar solo lo que difiere del valor por defecto (`Util.SetOverride`), escribir en el chat |
 | [`Core/Keys.lua`](Core/Keys.lua) | Traduce un hueco a su atajo (`ALT-CTRL-SHIFT-F3`) y a su texto legible (`Ctrl+Alt+Mayús+F3`) |
-| [`Core/Api.lua`](Core/Api.lua) | Única puerta a la API del juego para hechizos, objetos, equipo y bolsas, macros, cursor, mascota, beneficios (auras) del jugador, vendedores y dinero, tipo de instancia, avisos en pantalla y metadatos. Usa la API moderna (`C_Spell`, `C_Item`, `C_SpellBook`); donde hay una equivalente clásica (hechizo conocido, número de objetos, metadatos) la usa como respaldo, y si falta una función de hechizos u objetos devuelve vacío en lugar de dar un error de Lua (las de macros, cursor, jugador y mascota se usan directamente) |
-| [`Core/Storage.lua`](Core/Storage.lua) | Único módulo que toca la variable guardada `StreamDeckWoWChar` (huecos y preferencias del botón del minimapa y de cada aviso) |
+| [`Core/Api.lua`](Core/Api.lua) | *Compartido con FranTools.* Única puerta a la API del juego para hechizos, objetos, equipo y bolsas, macros, cursor, mascota, beneficios (auras) del jugador, amenaza y barras de nombre, vendedores y dinero, tipo de instancia, avisos en pantalla y metadatos. Usa la API moderna (`C_Spell`, `C_Item`, `C_SpellBook`); donde hay una equivalente clásica (hechizo conocido, número de objetos, metadatos) la usa como respaldo, y si falta una función de hechizos u objetos devuelve vacío en lugar de dar un error de Lua (las de macros, cursor, jugador y mascota se usan directamente) |
+| [`Core/Storage.lua`](Core/Storage.lua) | Único módulo que toca la variable guardada `StreamDeckWoWChar` (huecos y preferencias del botón del minimapa) |
 | [`Defaults/Defaults.lua`](Defaults/Defaults.lua) | Registro de valores por defecto: comunes y por clase |
 | [`Defaults/Common.lua`](Defaults/Common.lua) | Huecos comunes a todas las clases |
 | [`Defaults/Classes/Hunter.lua`](Defaults/Classes/Hunter.lua) | Huecos del cazador |
 | [`Core/Slots.lua`](Core/Slots.lua) | Qué hay en cada hueco: definición, resolución, foto para el plugin |
 | [`Core/Bindings.lua`](Core/Bindings.lua) | Asigna los atajos y decide cuándo recalcular |
-| [`Features/PetTaunt.lua`](Features/PetTaunt.lua) | Aviso del taunt de la mascota: comprueba el lanzamiento automático de Bramido al cambiar de zona, de mascota o al entrar en combate |
-| [`Features/Ammo.lua`](Features/Ammo.lua) | Aviso de munición baja: cuenta las flechas o balas que sirven para el arma a distancia y muestra u oculta el recuadro |
-| [`Features/Aspect.lua`](Features/Aspect.lua) | Aviso de aspecto: mira qué aspecto llevas y muestra u oculta el recuadro según los aspectos elegidos y si estás en combate |
-| [`Features/Merchant.lua`](Features/Merchant.lua) | Al abrir un vendedor: vende la basura en tandas y después repara el equipo |
 | [`UI/SlotButton.lua`](UI/SlotButton.lua) | Componente de botón de hueco: icono, arrastrar y soltar, tooltip |
-| [`UI/Tooltip.lua`](UI/Tooltip.lua) | Tooltips de ayuda (título y líneas en gris) que comparten todos los componentes |
-| [`UI/Checkbox.lua`](UI/Checkbox.lua) | Componente de casilla: lee y escribe su estado a través de funciones del módulo que la usa, sin guardar nada por sí misma |
-| [`UI/NumberBox.lua`](UI/NumberBox.lua) | Componente de caja numérica, con el mismo patrón: aplica con Intro o al salir, descarta con Escape y muestra el valor que el módulo acepta |
-| [`UI/NoticeBox.lua`](UI/NoticeBox.lua) | Componente de recuadro de aviso discreto: icono, texto, borde del color del nivel y posición movible que se guarda |
-| [`UI/OptionsPage.lua`](UI/OptionsPage.lua) | Dibuja una página de opciones a partir de filas descritas como datos (casillas sueltas o en columnas con icono, cajas numéricas, títulos, notas) |
-| [`UI/Sidebar.lua`](UI/Sidebar.lua) | Barra lateral de navegación de la ventana: entradas agrupadas bajo títulos, dibujada con texturas de color liso |
-| [`UI/GeneralPage.lua`](UI/GeneralPage.lua) | Página **General**: opciones para cualquier clase (reparar y vender la basura), solo como filas de datos |
-| [`UI/ClassPages/ClassPages.lua`](UI/ClassPages/ClassPages.lua) | Registro de secciones por clase (un grupo de páginas cada una) |
-| [`UI/ClassPages/Hunter.lua`](UI/ClassPages/Hunter.lua) | Sección **Cazador**: páginas Mascota, Munición y Aspectos, solo como filas de datos |
-| [`UI/ConfigWindow.lua`](UI/ConfigWindow.lua) | La ventana `/sdeck config`: barra lateral con la página **Teclas** y, si existe, la sección de la clase del personaje |
-| [`UI/MinimapButton.lua`](UI/MinimapButton.lua) | El botón del minimapa: abre la ventana, muestra el estado y se puede mover o esconder. Hecho a mano, sin LibDBIcon, para no depender de librerías externas |
+| [`UI/Tooltip.lua`](UI/Tooltip.lua) | *Compartido con FranTools.* Tooltips de ayuda (título y líneas en gris) que comparten todos los componentes |
+| [`UI/ConfigWindow.lua`](UI/ConfigWindow.lua) | La ventana `/sdeck config`: los 12 huecos |
+| [`UI/MinimapButton.lua`](UI/MinimapButton.lua) | *Compartido con FranTools.* Componente de botón del minimapa: se mueve alrededor del minimapa y se puede esconder; cada addon dice qué hace cada clic. Hecho a mano, sin LibDBIcon, para no depender de librerías externas |
+| [`UI/Minimap.lua`](UI/Minimap.lua) | El botón del minimapa de este addon: clic abre la ventana y clic derecho muestra el estado |
 | [`Core/Commands.lua`](Core/Commands.lua) | Comandos `/sdeck`; los publica en `ns.Commands.Run` para que el botón del minimapa los reutilice |
+
+Los archivos marcados como compartidos son iguales en los dos addons. Se editan en FranTools y se copian aquí con su script `tools/sync_shared.py` (`--check` solo comprueba que coinciden). Cada addon lleva su copia, como se hace con las librerías de WoW, para que StreamDeckWoW funcione sin FranTools y al revés.
 
 ### Override bindings
 
@@ -189,7 +182,7 @@ Los módulos no se llaman directamente cuando eso crearía dependencias circular
 
 - `SLOT_CHANGED`: el jugador ha cambiado un hueco → `Bindings` recalcula.
 - `SLOTS_UPDATED`: se han asignado los huecos → la ventana se redibuja y, la primera vez, se escribe el resumen en el chat.
-- `SETTINGS_CHANGED`: ha cambiado una opción (los avisos del taunt y de munición) → las casillas de la ventana se ponen al día, aunque el cambio se haya hecho con un comando.
+- `SETTINGS_CHANGED`: lo emite `Util.Switch` (compartido) al cambiar una opción; este addon no lo usa, FranTools sí.
 
 ### Tipos de entrada de un hueco
 
@@ -312,28 +305,6 @@ StreamDeckWoWChar = {
         ["angle"] = 225,                -- posición alrededor del minimapa, en grados
         ["hidden"] = true,              -- solo si lo has ocultado con /sdeck minimapa
     },
-    ["petTaunt"] = {                    -- aviso del taunt de la mascota (solo para el addon)
-        ["off"] = true,                 -- solo si lo has apagado con /sdeck aviso
-    },
-    ["ammo"] = {                        -- aviso de munición baja (solo para el addon)
-        ["off"] = true,                 -- solo si lo has apagado
-        ["point"] = { "CENTER", "CENTER", 0, -160 },   -- solo si has movido el recuadro
-        ["thresholds"] = {              -- solo los umbrales que has cambiado
-            ["arrow"] = { ["low"] = 300, ["critical"] = 80 },
-            ["bullet"] = { ["low"] = 150 },
-        },
-    },
-    ["aspect"] = {                      -- aviso de aspecto (solo para el addon)
-        ["off"] = true,                 -- solo si lo has apagado
-        ["point"] = { "CENTER", "CENTER", 0, -120 },   -- solo si has movido el recuadro
-        ["anytime"] = true,             -- solo si avisa también fuera de combate
-        ["chosen"] = {                  -- solo los aspectos que has cambiado
-            ["monkey"] = false,
-            ["wild"] = true,
-        },
-    },
-    ["repair"] = { ["off"] = true },    -- reparar solo, si lo has apagado (solo para el addon)
-    ["junk"] = { ["off"] = true },      -- vender la basura, si lo has apagado (solo para el addon)
 }
 ```
 
@@ -349,7 +320,7 @@ Casos de cada hueco en `slots`:
 
 Si el cliente todavía no tiene un objeto en caché, el atajo se asigna con `"item:<id>"`, pero en la foto `name` queda vacío (y `short` también, si el hueco no tiene texto propio) hasta que el servidor envía los datos; `/sdeck` lo muestra como «objeto <id> (cargando datos)».
 
-El plugin solo usa `slots` (y `class`, para su registro). `custom`, `minimap`, `petTaunt`, `ammo`, `aspect`, `repair` y `junk` son para el propio addon.
+El plugin solo usa `slots` (y `class`, para su registro). `custom` y `minimap` son para el propio addon.
 
 ---
 
@@ -460,12 +431,9 @@ Puedes montarlo a mano en la aplicación de Stream Deck: arrastra **Hueco WoW** 
 | `/sdeck` o `/sdeck estado` | Lista los 12 huecos: qué tiene asignado cada uno y, en rojo, lo que todavía no tienes. En combate muestra lo último asignado y avisa de que se actualizará al terminar |
 | `/sdeck config` | Abre o cierra la ventana de configuración (también con clic en el botón del minimapa) |
 | `/sdeck minimapa` | Oculta el botón del minimapa o lo vuelve a mostrar; se recuerda por personaje |
-| `/sdeck aviso` | Apaga o enciende el aviso del taunt de la mascota; se recuerda por personaje |
-| `/sdeck municion` | Apaga o enciende el aviso de munición baja; se recuerda por personaje |
-| `/sdeck aspecto` | Apaga o enciende el aviso de aspecto; se recuerda por personaje |
-| `/sdeck reparar` | Apaga o enciende reparar al abrir un vendedor; se recuerda por personaje |
-| `/sdeck basura` | Apaga o enciende vender la basura al abrir un vendedor; se recuerda por personaje |
 | `/sdeck ayuda` | Versión del addon y lista de comandos (también sale con cualquier otro texto) |
+
+Los comandos de los avisos (`/sdeck aviso`, `/sdeck municion`…) se mudaron a FranTools: si los escribes, el addon te dice el comando nuevo (`/fran aviso`…).
 
 ### Botón del minimapa
 
@@ -476,89 +444,11 @@ Al entrar aparece un botón con el icono del addon en el borde del minimapa (aba
 - **Arrastrar:** lo mueve alrededor del minimapa. La posición se guarda por personaje, como un ángulo, así que se mantiene aunque cambie el tamaño o la escala del minimapa. Si otro addon hace el minimapa cuadrado (y lo anuncia con `GetMinimapShape`), el botón recorre sus lados.
 - `/sdeck minimapa` lo esconde si molesta, y el mismo comando lo recupera.
 
-### Aviso del taunt de la mascota
-
-En mazmorras y bandas los enemigos los tiene que mantener el tanque: si la mascota los provoca con **Bramido**, se los quita. En solitario es al revés: conviene que la mascota los provoque para que no vengan a por ti. El addon vigila el lanzamiento automático de Bramido (el borde dorado que gira en la barra de la mascota) y avisa cuando no toca:
-
-| Dónde estás | Bramido automático | Aviso |
-|---|---|---|
-| Mazmorra o banda | Activado | «Bramido de la mascota ACTIVADO en mazmorra o banda: desactívalo…» |
-| Fuera (mundo abierto, campos de batalla…) | Desactivado | «Bramido de la mascota DESACTIVADO fuera de mazmorra: actívalo…» |
-
-- El aviso sale **en el centro de la pantalla**, en el chat y con un sonido. Solo lo ves tú: no se envía a nadie.
-- Se avisa una vez cuando la situación pasa a estar mal: al entrar o salir de una instancia, al invocar la mascota o al cambiar el automático. Si sigue mal, **se repite al entrar en combate**. Cuando lo corriges, una línea en el chat lo confirma.
-- Sin mascota, o con una que no tiene Bramido, no avisa.
-- El addon **no lo cambia por ti**: activar o desactivar el automático de una habilidad de la mascota es una acción protegida que solo puede hacer el jugador. Se cambia con clic derecho en Bramido, en la barra de la mascota. Si quieres hacerlo desde la Stream Deck, crea una macro con `/petautocasttoggle Bramido` y arrástrala a un hueco con `/sdeck config`.
-- Se apaga o enciende con la casilla **Avisar del taunt de la mascota (Bramido)** de **Cazador › Mascota** en `/sdeck config`, o con `/sdeck aviso`. Las dos cosas van sincronizadas.
-
-Los IDs de los siete rangos de Bramido están en `Const.PET_TAUNT` ([`Core/Constants.lua`](Core/Constants.lua)), junto con los tipos de instancia en los que debe estar desactivado. Sirve para cualquier taunt de mascota: basta con añadir sus IDs a la lista.
-
-### Aviso de munición baja
-
-Un recuadro pequeño con el icono de tu munición y cuántas te quedan, para acordarte de comprar antes de quedarte sin flechas. No suena ni ocupa el centro de la pantalla: aparece mientras falte y desaparece solo cuando vuelves a tener suficiente.
-
-| Munición | Recuadro |
-|---|---|
-| Por encima del umbral ámbar (200 por defecto) | No aparece |
-| Por debajo del ámbar | Borde ámbar: «Munición baja: 143» |
-| Por debajo del rojo (50 por defecto) | Borde rojo: «Munición muy baja: 32» |
-| Ninguna | Borde rojo: «Sin munición» |
-
-- **Qué cuenta:** la munición equipada, si el cliente tiene esa ranura; si no, todas las flechas (con arco o ballesta) o balas (con arma de fuego) de tus bolsas y carcajes. Las de otro tipo no cuentan: unas balas no sirven para un arco.
-- Solo para cazadores, y solo con un arma que gaste munición: con varita o arma arrojadiza no hay aviso.
-- **Arrástralo** a donde te moleste menos; la posición se guarda por personaje. Al principio está algo por debajo del centro de la pantalla.
-- Se apaga o enciende con la casilla **Avisar de munición baja** de **Cazador › Munición** en `/sdeck config`, o con `/sdeck municion`.
-- **Los umbrales se configuran por tipo de arma** en **Cazador › Munición** de `/sdeck config`, porque no es lo mismo un arco que un arma de fuego: una fila para **Arco/ballesta** (flechas) y otra para **Arma de fuego** (balas), cada una con su caja **Ámbar** y **Rojo**. Se aplica con Intro o haciendo clic fuera; Escape deja el valor que había.
-  - El rojo no puede ser mayor que el ámbar: si lo escribes, se ajusta al ámbar; y si bajas el ámbar por debajo del rojo, el rojo baja con él.
-  - **0 en ámbar** apaga el aviso de ese tipo.
-  - Solo se guardan los que cambias; los demás siguen los valores por defecto de `Const.AMMO.TYPES` ([`Core/Constants.lua`](Core/Constants.lua)).
-
-Sin verificar en Forever: si su cliente tiene ranura de munición. Por eso, además, se cuentan las bolsas, que funciona en cualquier caso.
-
-### Aviso de aspecto
-
-Otro recuadro discreto, como el de la munición, para no pelear sin aspecto o con el que no toca (el clásico: entrar en combate con el guepardo y quedarte aturdido al primer golpe).
-
-| Qué llevas | Recuadro |
-|---|---|
-| Un aspecto marcado | No aparece |
-| Ninguno | Borde ámbar: «Sin aspecto» |
-| Uno sin marcar | Borde rojo: «Aspecto: Guepardo» |
-
-- El icono es el del primer aspecto marcado que conoces: el que toca ponerse.
-- **Qué aspectos valen** se elige en **Cazador › Aspectos** de `/sdeck config`, con una casilla por aspecto (con su icono). Por defecto valen **Halcón** y **Mono**, los de combate; Salvaje, Guepardo, Manada y Bestia no. Solo se guardan los que cambias.
-- **Solo en combate** (marcado por defecto): fuera de combate no avisa, para que puedas viajar con el guepardo. Si lo desmarcas, avisa siempre.
-- No avisa muerto ni de aspectos que aún no has aprendido; si no conoces ninguno de los marcados, no hay aviso.
-- Se reconoce cualquier rango del aspecto, por su ID o, si el cliente no lo da, por su nombre.
-- **Arrástralo** a donde te moleste menos; la posición se guarda por personaje.
-- Se apaga o enciende con la primera casilla de **Cazador › Aspectos**, o con `/sdeck aspecto`.
-
-Los IDs de todos los rangos están en `Const.ASPECT` ([`Core/Constants.lua`](Core/Constants.lua)), comprobados en Wowhead Forever. Sin verificar en Forever: que su cliente dé las auras con `C_UnitAuras` (si no, se usa `UnitBuff`).
-
-### Reparar y vender la basura
-
-Para cualquier clase. Al abrir un vendedor, sin tocar nada:
-
-1. **Vende la basura**: los objetos grises que el vendedor compra. Nunca nada blanco o mejor, aunque valga poco.
-2. **Repara todo el equipo**, si el vendedor repara y te llega el dinero. Va después de vender, para contar ya con lo que da la basura.
-
-Las dos se cuentan en el chat («basura vendida: 7 objetos por 1p 20c», «equipo reparado por 3p 4c»); si no te llega para reparar, también lo dice. La basura se vende en tandas de 10 con una pausa corta entre ellas, porque el servidor descarta ventas si llegan muchas de golpe; si cierras el vendedor a medias, para.
-
-- **Abre el vendedor con Mayús pulsada** para que no haga nada, por si quieres vender a mano.
-- Repara con tu dinero, no con el del banco de hermandad.
-- Cada una se apaga o enciende en **General** de `/sdeck config`, o con `/sdeck reparar` y `/sdeck basura`. Las dos vienen encendidas.
-
 ### Ventana de configuración
 
 <p align="center"><code>/sdeck config</code> o clic en el botón del minimapa</p>
 
-A la izquierda, una **barra lateral** para elegir la página; la elegida se marca en dorado:
-
-- **Teclas:** los 12 huecos, para todas las clases.
-- **General:** opciones para todas las clases: reparar y vender la basura al abrir un vendedor.
-- **La sección de tu clase**, si la tiene, bajo su nombre en el color de la clase. De momento solo existe **Cazador**, con tres páginas: **Mascota** (aviso del taunt), **Munición** (aviso y umbrales por tipo de arma) y **Aspectos** (aviso y qué aspectos valen). Cada personaje ve solo la de su clase.
-
-En la página **Teclas**:
+Los 12 huecos, en dos filas:
 
 - **Arrastra** un hechizo del libro, un objeto de las bolsas o una macro a un hueco. También vale coger con un clic y soltar con otro, como en las barras de acción. Otras cosas (monturas, acciones de mascota…) no se aceptan.
 - **Clic derecho:** vuelve al valor por defecto.
@@ -616,9 +506,9 @@ StreamDeckWoW/                         ← carpeta del addon (raíz del reposito
 ├── StreamDeckWoW.toc                  manifiesto del addon: metadatos y orden de carga
 ├── Core/                              núcleo del addon
 │   ├── Constants.lua                  valores fijos
-│   ├── Util.lua                       utilidades genéricas
+│   ├── Util.lua                       utilidades genéricas (compartido)
 │   ├── Keys.lua                       atajos de cada hueco
-│   ├── Api.lua                        acceso a la API del juego
+│   ├── Api.lua                        acceso a la API del juego (compartido)
 │   ├── Storage.lua                    SavedVariables
 │   ├── Slots.lua                      lógica de los huecos
 │   ├── Bindings.lua                   asignación de atajos
@@ -627,25 +517,12 @@ StreamDeckWoW/                         ← carpeta del addon (raíz del reposito
 │   ├── Defaults.lua                   registro
 │   ├── Common.lua                     todas las clases
 │   └── Classes/Hunter.lua             cazador
-├── Features/                          funciones extra, independientes de las teclas
-│   ├── PetTaunt.lua                   aviso del taunt de la mascota
-│   ├── Ammo.lua                       aviso de munición baja
-│   ├── Aspect.lua                     aviso de aspecto
-│   └── Merchant.lua                   reparar y vender la basura
 ├── UI/                                interfaz
-│   ├── Tooltip.lua                    tooltips de ayuda compartidos
+│   ├── Tooltip.lua                    tooltips de ayuda (compartido)
 │   ├── SlotButton.lua                 botón de hueco
-│   ├── Checkbox.lua                   casilla de opciones
-│   ├── NumberBox.lua                  caja numérica
-│   ├── NoticeBox.lua                  recuadro de aviso discreto
-│   ├── OptionsPage.lua                página de opciones descrita como filas
-│   ├── Sidebar.lua                    barra lateral de la ventana
-│   ├── GeneralPage.lua                página General
-│   ├── ClassPages/                    una sección de páginas por clase
-│   │   ├── ClassPages.lua             registro
-│   │   └── Hunter.lua                 cazador
 │   ├── ConfigWindow.lua               ventana /sdeck config
-│   └── MinimapButton.lua              botón del minimapa
+│   ├── MinimapButton.lua              componente de botón del minimapa (compartido)
+│   └── Minimap.lua                    el botón del minimapa de este addon
 ├── Media/Icon.tga                     icono del addon (lista de addons y chat)
 └── StreamDeck/                        todo lo de Stream Deck (WoW no lo carga)
     ├── com.fsegado.wowdeck.sdPlugin/  el plugin
@@ -693,28 +570,7 @@ StreamDeckWoW/                         ← carpeta del addon (raíz del reposito
 
 Los IDs de hechizos y objetos de Forever se consultan en [Wowhead (Forever)](https://www.wowhead.com/forever). Para las profesiones, lista todos los rangos del más alto al más bajo.
 
-Si la clase tiene opciones propias, dale también su sección en la ventana:
-
-1. Crea `UI/ClassPages/<Clase>.lua` siguiendo el modelo de [`Hunter.lua`](UI/ClassPages/Hunter.lua). Solo describe las páginas y sus filas; los tipos de fila están en [`UI/OptionsPage.lua`](UI/OptionsPage.lua):
-
-   ```lua
-   local _, ns = ...
-
-   ns.ClassPages.Register("WARRIOR", {
-       title = "Guerrero",
-       pages = {
-           { title = "Gritos", rows = {
-               { kind = "check", label = "…", get = function() … end, set = function(on) … end },
-           } },
-       },
-   })
-   ```
-
-   Cada página sale en la barra lateral bajo el nombre de la clase, en su color.
-
-2. Añade la línea `UI\ClassPages\<Clase>.lua` al `.toc`, junto a la del cazador.
-
-La lógica de cada opción va en su módulo de `Features/`, con `Util.Switch` si es una opción que se enciende y se apaga.
+Las opciones propias de cada clase (avisos y demás) van en FranTools.
 
 ### 14.2. Cambiar los atajos
 

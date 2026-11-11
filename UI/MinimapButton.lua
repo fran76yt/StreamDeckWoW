@@ -2,11 +2,21 @@
 Botón del minimapa
 ==================
 
-Un botón redondo pegado al borde del minimapa, con el icono del addon:
-  clic             abrir o cerrar la ventana de configuración
-  clic derecho     estado de las teclas en el chat (como /sdeck)
-  arrastrar        moverlo alrededor del minimapa
-  /sdeck minimapa  ocultarlo o volver a mostrarlo
+Componente compartido con StreamDeckWoW (ver tools/sync_shared.py en
+FranTools): se edita allí y se copia a los dos addons.
+
+Un botón redondo pegado al borde del minimapa, con el icono del addon. Cada
+addon dice qué hace cada clic y qué pone su tooltip:
+
+  local button = ns.MinimapButton.Create({
+      settings = Storage.GetMinimap,          -- tabla donde guardar angle y hidden
+      tooltip = { "Título", "Clic: ...", ... },
+      onClick = { LeftButton = fn, RightButton = fn },
+  })
+  button:ToggleShown()   -- oculta o muestra el botón; true si queda visible
+
+Arrastrándolo se mueve alrededor del minimapa. Usa Const.MINIMAP (medidas,
+texturas y nombre global) y Const.ICON del addon.
 
 Está hecho a mano, sin LibDBIcon: es poco código y así el addon no depende de
 librerías externas que haya que incluir y mantener al día.
@@ -17,13 +27,11 @@ de escala. Se guarda por personaje, junto al resto de datos del addon.
 ]]
 
 local _, ns = ...
-local Const, Util, Storage = ns.Const, ns.Util, ns.Storage
+local Const, Util = ns.Const, ns.Util
 local M = Const.MINIMAP
 
 local MinimapButton = {}
 ns.MinimapButton = MinimapButton
-
-local button   -- el botón (nil hasta que se crea al entrar)
 
 -- Lua 5.1 (el de WoW) trae math.atan2; en versiones posteriores es math.atan
 -- con dos argumentos. Así funciona en el juego y en las pruebas fuera de él.
@@ -67,59 +75,18 @@ end
 -- Posición y visibilidad
 --------------------------------------------------------------------------------
 
-local function savedAngle()
-    return Storage.GetMinimap().angle or M.DEFAULT_ANGLE
+local function savedAngle(settings)
+    return settings().angle or M.DEFAULT_ANGLE
 end
 
-local function place(angle)
-    button:ClearAllPoints()
-    button:SetPoint("CENTER", Minimap, "CENTER", edgeOffset(angle))
+local function place(b, angle)
+    b:ClearAllPoints()
+    b:SetPoint("CENTER", Minimap, "CENTER", edgeOffset(angle))
 end
 
-local function applyVisibility()
-    button:SetShown(not Storage.GetMinimap().hidden)
+local function applyVisibility(b, settings)
+    b:SetShown(not settings().hidden)
 end
-
---------------------------------------------------------------------------------
--- Interacción
---------------------------------------------------------------------------------
-
--- Mientras se arrastra, el botón sigue al ratón en cada fotograma (OnUpdate).
--- La posición se guarda solo al soltar.
-local function followCursor()
-    place(cursorAngle())
-end
-
-local function onDragStart(self)
-    GameTooltip_Hide()
-    self:SetScript("OnUpdate", followCursor)
-end
-
-local function onDragStop(self)
-    self:SetScript("OnUpdate", nil)
-    Storage.GetMinimap().angle = cursorAngle()
-    place(savedAngle())
-end
-
--- Qué hace cada botón del ratón. Los módulos se buscan en ns al hacer clic,
--- no al cargar: Commands se carga después que este archivo.
-local clickActions = {
-    LeftButton = function() ns.ConfigWindow.Toggle() end,
-    RightButton = function() ns.Commands.Run("estado") end,
-}
-
-local function onClick(_, mouseButton)
-    local action = clickActions[mouseButton]
-    if action then action() end
-end
-
-local TOOLTIP = {
-    Const.UI.TITLE,
-    "Clic: configurar las teclas",
-    "Clic derecho: estado de las teclas",
-    "Arrastrar: mover este botón",
-    "/sdeck minimapa: ocultarlo",
-}
 
 --------------------------------------------------------------------------------
 -- Construcción
@@ -146,42 +113,60 @@ local function createTextures(b)
     b:SetHighlightTexture(M.HIGHLIGHT_TEXTURE)
 end
 
-local function createScripts(b)
+-- Mientras se arrastra, el botón sigue al ratón en cada fotograma (OnUpdate).
+-- La posición se guarda solo al soltar.
+local function createScripts(b, opts)
     b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     b:RegisterForDrag("LeftButton")
-    b:SetScript("OnClick", onClick)
-    b:SetScript("OnDragStart", onDragStart)
-    b:SetScript("OnDragStop", onDragStop)
-    ns.Tooltip.Attach(b, TOOLTIP, "ANCHOR_LEFT")
+    b:SetScript("OnClick", function(_, mouseButton)
+        local action = opts.onClick[mouseButton]
+        if action then action() end
+    end)
+    b:SetScript("OnDragStart", function(self)
+        GameTooltip_Hide()
+        self:SetScript("OnUpdate", function() place(self, cursorAngle()) end)
+    end)
+    b:SetScript("OnDragStop", function(self)
+        self:SetScript("OnUpdate", nil)
+        opts.settings().angle = cursorAngle()
+        place(self, savedAngle(opts.settings))
+    end)
+    ns.Tooltip.Attach(b, opts.tooltip, "ANCHOR_LEFT")
 end
 
-local function create()
+local function build(opts)
     local b = CreateFrame("Button", M.BUTTON_NAME, Minimap)
     b:SetSize(M.SIZE, M.SIZE)
     b:SetFrameStrata("MEDIUM")
     b:SetFrameLevel(M.FRAME_LEVEL)
     createTextures(b)
-    createScripts(b)
+    createScripts(b, opts)
+    place(b, savedAngle(opts.settings))
+    applyVisibility(b, opts.settings)
     return b
 end
 
--- Se crea al entrar, cuando ya están cargadas las SavedVariables con su
--- posición. PLAYER_LOGIN puede llegar más de una vez en las pruebas: solo se
--- crea la primera.
-Util.On("PLAYER_LOGIN", function()
-    if button then return end
-    button = create()
-    place(savedAngle())
-    applyVisibility()
-end)
+--------------------------------------------------------------------------------
+-- API del componente
+--------------------------------------------------------------------------------
 
---------------------------------------------------------------------------------
--- API del módulo
---------------------------------------------------------------------------------
+local methods = {}
 
 -- Oculta o muestra el botón y lo recuerda. Devuelve true si queda visible.
-function MinimapButton.ToggleShown()
-    local hidden = Util.ToggleFlag(Storage.GetMinimap(), "hidden")
-    if button then applyVisibility() end
+function methods:ToggleShown()
+    local hidden = Util.ToggleFlag(self.opts.settings(), "hidden")
+    if self.frame then applyVisibility(self.frame, self.opts.settings) end
     return not hidden
+end
+
+-- El marco se crea al entrar, cuando ya están cargadas las SavedVariables con
+-- su posición. PLAYER_LOGIN puede llegar más de una vez en las pruebas: solo
+-- se crea la primera.
+function MinimapButton.Create(opts)
+    local button = { opts = opts }
+    for name, fn in pairs(methods) do button[name] = fn end
+    Util.On("PLAYER_LOGIN", function()
+        button.frame = button.frame or build(opts)
+    end)
+    return button
 end

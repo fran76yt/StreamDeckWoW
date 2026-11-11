@@ -2,8 +2,10 @@
 Utilidades genéricas
 ====================
 
-Piezas que no saben nada de la Stream Deck y que servirían igual en cualquier
-otro addon: eventos, mensajes entre módulos, agrupar llamadas, esperar a salir
+Archivo compartido con StreamDeckWoW: se edita en FranTools y se copia con
+tools/sync_shared.py.
+
+Piezas que servirían igual en cualquier otro addon: eventos, mensajes entre módulos, agrupar llamadas, esperar a salir
 de combate, buscar en listas y escribir en el chat.
 ]]
 

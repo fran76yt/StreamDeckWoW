@@ -28,25 +28,6 @@ Estructura:
                angle   posición alrededor del minimapa, en grados
                        (nil -> la de por defecto)
                hidden  true si el jugador lo ha ocultado con /sdeck minimapa
-  petTaunt   preferencias del aviso del taunt de la mascota (tampoco las lee):
-               off     true si el jugador lo ha apagado con /sdeck aviso
-  ammo       preferencias del aviso de munición baja (tampoco las lee):
-               off     true si el jugador lo ha apagado
-               point   posición del recuadro: { punto, punto relativo, x, y }
-                       (nil -> la de por defecto)
-               thresholds  umbrales cambiados por el jugador, por tipo:
-                       { arrow = { low = 300, critical = 80 }, bullet = {...} }
-                       (los que no están usan los de Const.AMMO.TYPES)
-  aspect     preferencias del aviso de aspecto (tampoco las lee):
-               off      true si el jugador lo ha apagado
-               point    posición del recuadro, como en ammo
-               anytime  true si avisa también fuera de combate
-               chosen   aspectos que valen, solo los cambiados respecto a
-                        Const.ASPECT.LIST: { hawk = false, wild = true }
-  repair     reparar solo al abrir un vendedor (tampoco las lee):
-               off      true si el jugador lo ha apagado
-  junk       vender la basura sola al abrir un vendedor (tampoco las lee):
-               off      true si el jugador lo ha apagado
 ]]
 
 local _, ns = ...
@@ -94,24 +75,4 @@ end
 
 function Storage.GetMinimap()
     return section("minimap")
-end
-
-function Storage.GetPetTaunt()
-    return section("petTaunt")
-end
-
-function Storage.GetAmmo()
-    return section("ammo")
-end
-
-function Storage.GetAspect()
-    return section("aspect")
-end
-
-function Storage.GetRepair()
-    return section("repair")
-end
-
-function Storage.GetJunk()
-    return section("junk")
 end

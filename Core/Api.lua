@@ -2,6 +2,9 @@
 Capa de acceso a la API de WoW
 ==============================
 
+Archivo compartido con StreamDeckWoW: se edita en FranTools y se copia con
+tools/sync_shared.py.
+
 El resto del addon no llama directamente a la API del juego para hechizos,
 objetos, macros, el cursor o los vendedores: pasa por estas funciones. Motivos:
 
@@ -13,7 +16,8 @@ objetos, macros, el cursor o los vendedores: pasa por estas funciones. Motivos:
     resto de funciones de los espacios C_* devuelve nil si no existe, en lugar
     de dar un error de Lua. Las de macros, cursor, jugador, mascota y
     vendedor (GetMacroInfo, GetCursorInfo, UnitClass, GetPetActionInfo,
-    RepairAllItems...) existen en todos los clientes y se usan tal cual.
+    RepairAllItems...) existen en todos los clientes y se usan tal cual; la
+    de amenaza se comprueba antes, por si el cliente no la tuviera.
   * Para probar el addon fuera del juego basta con simular estas funciones.
 ]]
 
@@ -103,6 +107,49 @@ function Api.PetActions()
         end
     end
     return actions
+end
+
+--------------------------------------------------------------------------------
+-- Amenaza (agro) y barras de nombre
+--------------------------------------------------------------------------------
+
+-- Amenaza de "who" ("player", "pet") sobre unit: { tanking, status, percent },
+-- o nil si no está en su lista de amenaza (o si no existe). tanking: va a por
+-- él. status, de UnitThreatSituation: 0 poca, 1 más que quien tanquea (está
+-- a punto de quitarle el agro), 2 y 3 tanqueando. percent es el escalado: a
+-- 100 le quita el agro a quien lo tiene.
+function Api.Threat(who, unit)
+    if not UnitDetailedThreatSituation or not UnitExists(who) then return nil end
+    local tanking, status, percent = UnitDetailedThreatSituation(who, unit)
+    if status == nil then return nil end
+    return { tanking = tanking and true or false, status = status, percent = percent or 0 }
+end
+
+function Api.CanAttack(unit)
+    return UnitCanAttack("player", unit) and true or false
+end
+
+-- Barra de nombre de una unidad, o nil si no tiene o si el juego la protege
+-- (en el cliente moderno, las de aliados dentro de mazmorras: tocarlas da error).
+function Api.NamePlateFor(unit)
+    local plate = call(C_NamePlate, "GetNamePlateForUnit", unit)
+    if plate and not (plate.IsForbidden and plate:IsForbidden()) then return plate end
+end
+
+-- Unidades con barra de nombre a la vista ("nameplate1", "nameplate2"...).
+function Api.NamePlateUnits()
+    local units = {}
+    for _, plate in ipairs(call(C_NamePlate, "GetNamePlates") or {}) do
+        if plate.namePlateUnitToken then units[#units + 1] = plate.namePlateUnitToken end
+    end
+    return units
+end
+
+-- Barra de vida de una barra de nombre de Blizzard, o nil si su diseño no la
+-- tiene donde se espera (otro cliente, u otro addon que las sustituye).
+function Api.NamePlateHealthBar(plate)
+    local frame = plate.UnitFrame
+    return type(frame) == "table" and frame.healthBar or nil
 end
 
 --------------------------------------------------------------------------------
