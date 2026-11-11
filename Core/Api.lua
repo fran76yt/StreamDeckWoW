@@ -86,6 +86,20 @@ function Api.InstanceType()
     return inInstance and kind or "none"
 end
 
+-- En grupo o en banda.
+function Api.IsInGroup()
+    return IsInGroup and IsInGroup() and true or false
+end
+
+-- Rol del jugador en el grupo ("TANK", "HEALER", "DAMAGER"), o nil si no lo
+-- tiene puesto o si el cliente no tiene roles (el buscador de grupo).
+function Api.GroupRole()
+    if not UnitGroupRolesAssigned then return nil end
+    local role = UnitGroupRolesAssigned("player")
+    if role == "NONE" then return nil end
+    return role
+end
+
 --------------------------------------------------------------------------------
 -- Mascota
 --------------------------------------------------------------------------------
