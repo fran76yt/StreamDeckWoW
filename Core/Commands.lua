@@ -6,6 +6,8 @@ Comandos de chat
   /sdeck estado    estado de todas las teclas
   /sdeck config    abrir o cerrar la ventana de configuración
   /sdeck minimapa  ocultar o mostrar el botón del minimapa
+  /sdeck errores   errores de Lua apuntados (/sdeck errores 2: uno con su pila;
+                   /sdeck errores borrar: vaciar la lista)
   /sdeck ayuda     versión y lista de comandos (también con cualquier otro texto)
 
 Cada subcomando es una función en la tabla "commands": añadir uno nuevo es
@@ -89,11 +91,17 @@ for _, name in ipairs(MOVED_TO_FRANTOOLS) do
     end
 end
 
+-- Lo que va detrás ("2", "borrar") lo interpreta el propio registro.
+function commands.errores(arg)
+    ns.ErrorLog.Command(arg)
+end
+
 function commands.ayuda()
     Util.Print("versión %s. Comandos:", ns.Api.AddOnVersion())
     print("  /sdeck  -  estado de las teclas (también /sdeck estado)")
     print("  /sdeck config  -  configurar los huecos (también con clic en el botón del minimapa)")
     print("  /sdeck minimapa  -  ocultar o mostrar el botón del minimapa")
+    print("  /sdeck errores  -  errores de Lua apuntados (con un número, uno entero; borrar, vaciar la lista)")
     print("  /sdeck ayuda  -  esta ayuda")
 end
 
@@ -103,16 +111,16 @@ commands[""] = commands.estado
 --------------------------------------------------------------------------------
 -- Registro del comando
 --------------------------------------------------------------------------------
--- Ejecuta el subcomando escrito tras /sdeck. Un subcomando desconocido
--- muestra la ayuda. Se publica en ns para que otras partes de la interfaz
+-- Ejecuta el subcomando escrito tras /sdeck, pasándole el resto del texto.
+-- Un subcomando desconocido muestra la ayuda. Se publica en ns para que otras partes de la interfaz
 -- (el botón del minimapa) lancen los mismos comandos sin repetir su código.
 local Commands = {}
 ns.Commands = Commands
 
 function Commands.Run(msg)
-    local name = (msg or ""):match("^%s*(%S*)"):lower()
-    local run = commands[name] or commands.ayuda
-    run()
+    local name, rest = (msg or ""):match("^%s*(%S*)%s*(.-)%s*$")
+    local run = commands[name:lower()] or commands.ayuda
+    run(rest)
 end
 
 -- WoW registra comandos con la convención SLASH_<NOMBRE>1 + SlashCmdList.<NOMBRE>.

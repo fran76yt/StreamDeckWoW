@@ -5,8 +5,9 @@ Utilidades genéricas
 Archivo compartido con StreamDeckWoW: se edita en FranTools y se copia con
 tools/sync_shared.py.
 
-Piezas que servirían igual en cualquier otro addon: eventos, mensajes entre módulos, agrupar llamadas, esperar a salir
-de combate, buscar en listas y escribir en el chat.
+Piezas que servirían igual en cualquier otro addon: llamadas protegidas,
+eventos, mensajes entre módulos, agrupar llamadas, esperar a salir de
+combate, buscar en listas y escribir en el chat.
 ]]
 
 local _, ns = ...
@@ -14,6 +15,32 @@ local Const = ns.Const
 
 local Util = {}
 ns.Util = Util
+
+--------------------------------------------------------------------------------
+-- Llamadas protegidas
+--------------------------------------------------------------------------------
+-- Un error en una función no debe impedir que se ejecuten las demás que
+-- esperan el mismo evento. Cada una se llama protegida (el "try/catch" de
+-- Lua) y su error va al manejador de errores del juego, que se busca en el
+-- momento: puede ser el de Blizzard, el de BugSack o el registro de errores
+-- de este addon (Core/ErrorLog.lua), que se pone después de cargar esto.
+
+local function reportError(err)
+    return geterrorhandler()(err)
+end
+
+-- El xpcall de WoW pasa a la función los argumentos que van tras el
+-- manejador; el de Lua 5.1 puro, no. Se comprueba una vez: sin ese soporte
+-- hay que envolver la llamada, que cuesta una tabla cada vez.
+local XPCALL_PASSES_ARGS = select(2, xpcall(function(v) return v end, reportError, true)) == true
+
+-- Llama a fn(...) y, si falla, entrega el error al manejador sin cortar la
+-- ejecución de quien llama. Devuelve lo mismo que xpcall: ok, resultados...
+function Util.SafeCall(fn, ...)
+    if XPCALL_PASSES_ARGS then return xpcall(fn, reportError, ...) end
+    local args, n = { ... }, select("#", ...)
+    return xpcall(function() return fn(unpack(args, 1, n)) end, reportError)
+end
 
 --------------------------------------------------------------------------------
 -- Eventos de WoW
@@ -34,7 +61,7 @@ function Util.On(event, fn)
 end
 
 eventFrame:SetScript("OnEvent", function(_, event, ...)
-    for _, fn in ipairs(eventHandlers[event]) do fn(...) end
+    for _, fn in ipairs(eventHandlers[event]) do Util.SafeCall(fn, ...) end
 end)
 
 --------------------------------------------------------------------------------
@@ -52,7 +79,7 @@ function Util.Listen(message, fn)
 end
 
 function Util.Fire(message, ...)
-    for _, fn in ipairs(listeners[message] or {}) do fn(...) end
+    for _, fn in ipairs(listeners[message] or {}) do Util.SafeCall(fn, ...) end
 end
 
 --------------------------------------------------------------------------------
@@ -97,12 +124,11 @@ function Util.OutOfCombat(fn)
 end
 
 -- Al salir de combate se ejecuta lo pendiente. Cada función va protegida: si
--- una falla, WoW muestra el error con su manejador habitual y las demás se
--- ejecutan igualmente.
+-- una falla, las demás se ejecutan igualmente.
 Util.On("PLAYER_REGEN_ENABLED", function()
     for fn in pairs(deferred) do
         deferred[fn] = nil
-        xpcall(fn, geterrorhandler())
+        Util.SafeCall(fn)
     end
 end)
 

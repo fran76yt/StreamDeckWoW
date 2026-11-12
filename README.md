@@ -147,9 +147,10 @@ Todos los archivos del addon reciben la misma tabla privada (`local _, ns = ...`
 | Archivo | Responsabilidad |
 |---|---|
 | [`Core/Constants.lua`](Core/Constants.lua) | Todos los valores fijos: número de huecos, modificadores del atajo, eventos, colores, medidas de la ventana y del botón del minimapa |
-| [`Core/Util.lua`](Core/Util.lua) | *Compartido con FranTools.* Utilidades genéricas (solo dependen de las constantes): suscripción a eventos, mensajes entre módulos, temporizadores y *debounce*, ejecutar fuera de combate, interruptores de opciones (`Util.Switch`), guardar solo lo que difiere del valor por defecto (`Util.SetOverride`), escribir en el chat |
+| [`Core/Util.lua`](Core/Util.lua) | *Compartido con FranTools.* Utilidades genéricas (solo dependen de las constantes): llamadas protegidas (`Util.SafeCall`: cada función de un evento se ejecuta aparte, y si falla no corta las demás), suscripción a eventos, mensajes entre módulos, temporizadores y *debounce*, ejecutar fuera de combate, interruptores de opciones (`Util.Switch`), guardar solo lo que difiere del valor por defecto (`Util.SetOverride`), escribir en el chat |
 | [`Core/Keys.lua`](Core/Keys.lua) | Traduce un hueco a su atajo (`ALT-CTRL-SHIFT-F3`) y a su texto legible (`Ctrl+Alt+Mayús+F3`) |
 | [`Core/Api.lua`](Core/Api.lua) | *Compartido con FranTools.* Única puerta a la API del juego para hechizos, objetos, equipo y bolsas, macros, cursor, mascota, beneficios (auras) del jugador, amenaza y barras de nombre, vendedores y dinero, tipo de instancia, avisos en pantalla y metadatos. Usa la API moderna (`C_Spell`, `C_Item`, `C_SpellBook`); donde hay una equivalente clásica (hechizo conocido, número de objetos, metadatos) la usa como respaldo, y si falta una función de hechizos u objetos devuelve vacío en lugar de dar un error de Lua (las de macros, cursor, jugador y mascota se usan directamente) |
+| [`Core/ErrorLog.lua`](Core/ErrorLog.lua) | *Compartido con FranTools.* Registro de errores: se pone delante del manejador de errores del juego, apunta los de este addon en una variable de la cuenta (sin repetir, con contador y como mucho 50) y los muestra con `/sdeck errores` |
 | [`Core/Storage.lua`](Core/Storage.lua) | Único módulo que toca la variable guardada `StreamDeckWoWChar` (huecos y preferencias del botón del minimapa) |
 | [`Defaults/Defaults.lua`](Defaults/Defaults.lua) | Registro de valores por defecto: comunes y por clase |
 | [`Defaults/Common.lua`](Defaults/Common.lua) | Huecos comunes a todas las clases |
@@ -431,6 +432,7 @@ Puedes montarlo a mano en la aplicación de Stream Deck: arrastra **Hueco WoW** 
 | `/sdeck` o `/sdeck estado` | Lista los 12 huecos: qué tiene asignado cada uno y, en rojo, lo que todavía no tienes. En combate muestra lo último asignado y avisa de que se actualizará al terminar |
 | `/sdeck config` | Abre o cierra la ventana de configuración (también con clic en el botón del minimapa) |
 | `/sdeck minimapa` | Oculta el botón del minimapa o lo vuelve a mostrar; se recuerda por personaje |
+| `/sdeck errores` | Errores de Lua apuntados; con un número (`/sdeck errores 2`), uno entero con su pila; con `borrar`, vacía la lista. Se guardan en `StreamDeckWoWLog`, una variable de toda la cuenta, aunque el juego tenga apagada la ventana de errores |
 | `/sdeck ayuda` | Versión del addon y lista de comandos (también sale con cualquier otro texto) |
 
 Los comandos de los avisos (`/sdeck aviso`, `/sdeck municion`…) se mudaron a FranTools: si los escribes, el addon te dice el comando nuevo (`/fran aviso`…).
@@ -509,6 +511,7 @@ StreamDeckWoW/                         ← carpeta del addon (raíz del reposito
 │   ├── Util.lua                       utilidades genéricas (compartido)
 │   ├── Keys.lua                       atajos de cada hueco
 │   ├── Api.lua                        acceso a la API del juego (compartido)
+│   ├── ErrorLog.lua                   registro de errores de Lua (compartido)
 │   ├── Storage.lua                    SavedVariables
 │   ├── Slots.lua                      lógica de los huecos
 │   ├── Bindings.lua                   asignación de atajos

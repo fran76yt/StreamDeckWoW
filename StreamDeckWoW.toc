@@ -33,6 +33,10 @@
 # canal por el que el plugin de Stream Deck se entera de la configuración.
 ## SavedVariablesPerCharacter: StreamDeckWoWChar
 
+# Variable de toda la cuenta, en WTF\Account\<cuenta>\SavedVariables\StreamDeckWoW.lua:
+# los errores de Lua apuntados (Core/ErrorLog.lua), sean del personaje que sean.
+## SavedVariables: StreamDeckWoWLog
+
 # Orden de carga: cada módulo usa los que se han cargado antes que él.
 #   Constantes y utilidades genéricas (Util y Api, compartidas con FranTools)
 Core\Constants.lua
@@ -40,6 +44,9 @@ Core\Util.lua
 #   Acceso a la API del juego y datos
 Core\Keys.lua
 Core\Api.lua
+# Registro de errores: lo antes posible, para que apunte también los errores
+# al cargar los archivos siguientes
+Core\ErrorLog.lua
 Core\Storage.lua
 #   Valores por defecto: registro, comunes y uno por clase
 Defaults\Defaults.lua

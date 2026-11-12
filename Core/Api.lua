@@ -53,6 +53,31 @@ function Api.AddOnVersion()
 end
 
 --------------------------------------------------------------------------------
+-- Errores de Lua y hora
+--------------------------------------------------------------------------------
+
+-- Manejador al que el juego entrega los errores de Lua de todos los addons.
+function Api.ErrorHandler()
+    return geterrorhandler()
+end
+
+function Api.SetErrorHandler(fn)
+    seterrorhandler(fn)
+end
+
+-- Pila de llamadas como texto, empezando "level" niveles por encima de quien
+-- llama a esta función (1 = quien llama). Dentro de un manejador de errores
+-- es la pila del momento del error.
+function Api.Stack(level)
+    return debugstack and debugstack(level + 1) or ""
+end
+
+-- Fecha y hora local, para apuntar cuándo pasó algo.
+function Api.Now()
+    return date("%Y-%m-%d %H:%M")
+end
+
+--------------------------------------------------------------------------------
 -- Jugador
 --------------------------------------------------------------------------------
 

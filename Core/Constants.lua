@@ -13,10 +13,10 @@ y una tabla privada que comparten todos sus archivos. Usamos esa tabla (ns,
 que podrían chocar con otros addons.
 
 Los archivos compartidos con FranTools (Core/Util.lua, Core/Api.lua,
-UI/Tooltip.lua y UI/MinimapButton.lua, que se editan en FranTools y se copian
-con su tools/sync_shared.py) leen de aquí ADDON_NAME, ICON,
-MSG.SETTINGS_CHANGED, CHAT_PREFIX, UI.TOOLTIP_HELP_COLOR y MINIMAP: los dos
-addons tienen que definirlos.
+Core/ErrorLog.lua, UI/Tooltip.lua y UI/MinimapButton.lua, que se editan en
+FranTools y se copian con su tools/sync_shared.py) leen de aquí ADDON_NAME,
+ICON, MSG.SETTINGS_CHANGED, CHAT_PREFIX, UI.TOOLTIP_HELP_COLOR, MINIMAP y
+ERROR_LOG: los dos addons tienen que definirlos.
 ]]
 
 local addonName, ns = ...
@@ -110,6 +110,15 @@ Const.UI = {
     TOOLTIP_KEY_COLOR = { 0.2, 1, 0.6 },
     TOOLTIP_WARNING_COLOR = { 1, 0.4, 0.4 },
     TOOLTIP_HELP_COLOR = { 0.8, 0.8, 0.8 },
+}
+
+-- Registro de errores de Lua (Core/ErrorLog.lua, compartido).
+Const.ERROR_LOG = {
+    SAVED_VAR = "StreamDeckWoWLog",       -- variable de la cuenta (## SavedVariables del .toc)
+    COMMAND = "/sdeck errores",       -- para el aviso del chat y la ayuda
+    MAX_ENTRIES = 50,                  -- errores distintos que se guardan como mucho
+    MAX_STACK_CHARS = 2000,            -- tope de la pila de cada uno, para no inflar el archivo
+    STACK_COLOR = "999999",            -- gris para la pila en el chat
 }
 
 -- Botón del minimapa. Las medidas y texturas son las del aro estándar que usan
