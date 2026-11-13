@@ -175,20 +175,40 @@ function Api.NamePlateFor(unit)
     if plate and not (plate.IsForbidden and plate:IsForbidden()) then return plate end
 end
 
+-- Unidad de una barra de nombre ("nameplate1"...). Según la versión del
+-- cliente la guarda el marco base o su UnitFrame: se miran los dos.
+local function namePlateUnit(plate)
+    local frame = plate.UnitFrame
+    return plate.namePlateUnitToken or (type(frame) == "table" and frame.unit) or nil
+end
+
 -- Unidades con barra de nombre a la vista ("nameplate1", "nameplate2"...).
 function Api.NamePlateUnits()
     local units = {}
     for _, plate in ipairs(call(C_NamePlate, "GetNamePlates") or {}) do
-        if plate.namePlateUnitToken then units[#units + 1] = plate.namePlateUnitToken end
+        local unit = namePlateUnit(plate)
+        if unit then units[#units + 1] = unit end
     end
     return units
 end
 
 -- Barra de vida de una barra de nombre de Blizzard, o nil si su diseño no la
--- tiene donde se espera (otro cliente, u otro addon que las sustituye).
+-- tiene donde se espera (otro addon que las sustituye). En los clientes
+-- clásicos cuelga del UnitFrame; en los modernos, de su HealthBarsContainer.
 function Api.NamePlateHealthBar(plate)
     local frame = plate.UnitFrame
-    return type(frame) == "table" and frame.healthBar or nil
+    if type(frame) ~= "table" then return nil end
+    local container = frame.HealthBarsContainer
+    return frame.healthBar or (type(container) == "table" and container.healthBar) or nil
+end
+
+-- Si el cliente da la amenaza a los addons (sin ella no hay agro que pintar).
+function Api.HasThreat()
+    return UnitDetailedThreatSituation ~= nil
+end
+
+function Api.UnitName(unit)
+    return UnitName(unit)
 end
 
 --------------------------------------------------------------------------------
