@@ -53,6 +53,25 @@ function Api.AddOnVersion()
 end
 
 --------------------------------------------------------------------------------
+-- Valores secretos
+--------------------------------------------------------------------------------
+-- El cliente moderno (y Forever con él) oculta a los addons algunos datos en
+-- combate: la amenaza, las auras... Llegan como "valores secretos", que se
+-- pueden pasar de un sitio a otro pero no comparar ni usar en un "if": eso
+-- da un error de Lua. Hay que preguntar antes si lo son.
+
+function Api.IsSecret(value)
+    return issecretvalue ~= nil and issecretvalue(value) == true
+end
+
+local function anySecret(...)
+    for i = 1, select("#", ...) do
+        if Api.IsSecret((select(i, ...))) then return true end
+    end
+    return false
+end
+
+--------------------------------------------------------------------------------
 -- Errores de Lua y hora
 --------------------------------------------------------------------------------
 
@@ -156,10 +175,12 @@ end
 -- o nil si no está en su lista de amenaza (o si no existe). tanking: va a por
 -- él. status, de UnitThreatSituation: 0 poca, 1 más que quien tanquea (está
 -- a punto de quitarle el agro), 2 y 3 tanqueando. percent es el escalado: a
--- 100 le quita el agro a quien lo tiene.
+-- 100 le quita el agro a quien lo tiene. Si el cliente la oculta (valor
+-- secreto, en combate) devuelve nil, true.
 function Api.Threat(who, unit)
     if not UnitDetailedThreatSituation or not UnitExists(who) then return nil end
     local tanking, status, percent = UnitDetailedThreatSituation(who, unit)
+    if anySecret(tanking, status, percent) then return nil, true end
     if status == nil then return nil end
     return { tanking = tanking and true or false, status = status, percent = percent or 0 }
 end
@@ -202,7 +223,8 @@ function Api.NamePlateHealthBar(plate)
     return frame.healthBar or (type(container) == "table" and container.healthBar) or nil
 end
 
--- Si el cliente da la amenaza a los addons (sin ella no hay agro que pintar).
+-- Si el cliente tiene la función de amenaza (aunque luego la oculte en
+-- combate: eso lo dice Api.Threat).
 function Api.HasThreat()
     return UnitDetailedThreatSituation ~= nil
 end
@@ -230,15 +252,34 @@ local function playerBuff(i)
     end
 end
 
--- Beneficios que lleva el jugador: lista de { name, spellID }.
-function Api.PlayerBuffs()
+local function readPlayerBuffs()
     local buffs = {}
     for i = 1, MAX_BUFFS do
         local name, spellID = playerBuff(i)
+        if anySecret(name, spellID) then return nil end
         if not name then break end
         buffs[#buffs + 1] = { name = name, spellID = spellID }
     end
     return buffs
+end
+
+-- Beneficios que lleva el jugador: lista de { name, spellID }, o nil si el
+-- cliente no deja leerlos ahora (en combate los oculta: pedirlos da un error,
+-- que aquí se recoge sin que llegue al manejador).
+function Api.PlayerBuffs()
+    local ok, buffs = pcall(readPlayerBuffs)
+    return ok and buffs or nil
+end
+
+-- Si el jugador lleva el aura de un hechizo concreto: true, false, o nil si
+-- no se puede saber. Es otra forma de preguntar que el cliente moderno puede
+-- permitir aunque oculte la lista completa.
+function Api.HasPlayerAura(spellID)
+    local get = apiFunction(C_UnitAuras, "GetPlayerAuraBySpellID")
+    if not get then return nil end
+    local ok, data = pcall(get, spellID)
+    if not ok or Api.IsSecret(data) then return nil end
+    return data ~= nil
 end
 
 --------------------------------------------------------------------------------
