@@ -2,8 +2,8 @@
 Botón del minimapa
 ==================
 
-Componente compartido con StreamDeckWoW (ver tools/sync_shared.py en
-FranTools): se edita allí y se copia a los dos addons.
+Componente compartido con StreamDeckWoW y FranFundir (ver
+tools/sync_shared.py en FranTools): se edita allí y se copia a los demás.
 
 Un botón redondo pegado al borde del minimapa, con el icono del addon. Cada
 addon dice qué hace cada clic y qué pone su tooltip:
