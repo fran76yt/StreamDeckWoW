@@ -2,8 +2,8 @@
 Utilidades genéricas
 ====================
 
-Archivo compartido con StreamDeckWoW: se edita en FranTools y se copia con
-tools/sync_shared.py.
+Archivo compartido con StreamDeckWoW y FranFundir: se edita en FranTools y
+se copia con tools/sync_shared.py.
 
 Piezas que servirían igual en cualquier otro addon: llamadas protegidas,
 eventos, mensajes entre módulos, agrupar llamadas, esperar a salir de
@@ -58,6 +58,23 @@ function Util.On(event, fn)
         eventFrame:RegisterEvent(event)   -- solo escuchamos lo que alguien usa
     end
     table.insert(eventHandlers[event], fn)
+end
+
+-- Si este cliente tiene el evento. Hay eventos que solo existen en algunas
+-- versiones del juego (TRADE_SKILL_UPDATE está en el cliente clásico antiguo
+-- y no en Forever), y registrar uno que no existe es un error de Lua que
+-- corta la carga del archivo. Sin C_EventUtils se prueba a registrarlo.
+local function eventExists(event)
+    if C_EventUtils and C_EventUtils.IsEventValid then return C_EventUtils.IsEventValid(event) end
+    return (pcall(eventFrame.RegisterEvent, eventFrame, event))
+end
+
+-- Como Util.On, pero solo si el cliente tiene el evento: para los que
+-- dependen de la versión del juego. Devuelve si se ha suscrito.
+function Util.OnIfExists(event, fn)
+    if not eventExists(event) then return false end
+    Util.On(event, fn)
+    return true
 end
 
 eventFrame:SetScript("OnEvent", function(_, event, ...)

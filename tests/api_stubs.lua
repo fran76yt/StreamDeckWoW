@@ -36,6 +36,7 @@ function newObj()
     if k == "TitleText" or k == "Text" or k:match("^%l") then return nil end
     return function(self, ...)
       if k == "SetScript" then rawset(self, "_" .. select(1, ...), select(2, ...)) end
+      if k == "RegisterEvent" and unknownEvents[(...)] then error("Attempt to register unknown event \"" .. (...) .. "\"") end
       if k == "IsShown" then return rawget(self, "_shown") end
       if k == "SetShown" then local was = rawget(self, "_shown"); rawset(self, "_shown", (...)) if (...) and not was and rawget(self, "_OnShow") then rawget(self, "_OnShow")(self) end end
       if k == "Hide" then rawset(self, "_shown", false) end
@@ -60,6 +61,10 @@ function newObj()
     end
   end })
 end
+-- Eventos que no tiene el cliente simulado (como Forever): registrarlos da
+-- error, igual que en el juego.
+unknownEvents = { TRADE_SKILL_UPDATE = true }
+C_EventUtils = { IsEventValid = function(event) return not unknownEvents[event] end }
 function CreateFrame(_, name, parent) local o = newObj() rawset(o, "_parent", parent) if name then _G[name] = o rawset(o, "_name", name) end return o end
 Minimap = newObj()
 rawset(Minimap, "GetWidth", function() return 140 end)
