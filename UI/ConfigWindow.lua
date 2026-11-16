@@ -29,6 +29,15 @@ local function frameWidth()
     return UI.COLUMNS * UI.SLOT_SIZE + (UI.COLUMNS - 1) * UI.SLOT_GAP + 2 * UI.PADDING
 end
 
+-- Alto de la ventana: las filas de huecos con sus nombres, y debajo el texto
+-- de ayuda y el botón. Se calcula para que el texto nunca quede detrás de la
+-- última fila.
+local function frameHeight()
+    local rows = math.ceil(Const.NUM_SLOTS / UI.COLUMNS)
+    local slots = rows * UI.SLOT_SIZE + (rows - 1) * UI.SLOT_ROW_GAP
+    return -UI.SLOTS_TOP + slots + UI.LAST_NAME_SPACE + UI.HELP_HEIGHT + UI.HELP_BOTTOM
+end
+
 -- Posición (relativa a la esquina superior izquierda) del hueco n.
 local function slotOffset(n)
     local col, row = (n - 1) % UI.COLUMNS, math.floor((n - 1) / UI.COLUMNS)
@@ -83,9 +92,9 @@ end
 
 -- Marco de la ventana: plantilla de Blizzard con título y botón de cerrar,
 -- arrastrable y que se cierra con Escape.
-local function createFrame(width)
+local function createFrame(width, height)
     local f = CreateFrame("Frame", UI.FRAME_NAME, UIParent, "BasicFrameTemplateWithInset")
-    f:SetSize(width, UI.HEIGHT)
+    f:SetSize(width, height)
     f:SetPoint("CENTER")
     f:SetMovable(true)
     f:EnableMouse(true)
@@ -117,7 +126,7 @@ local function createTitle(f)
 end
 
 local function create()
-    frame = createFrame(frameWidth())
+    frame = createFrame(frameWidth(), frameHeight())
     createTitle(frame)
     buttons = createSlots(frame)
     createHelp(frame)

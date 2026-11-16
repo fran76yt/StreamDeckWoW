@@ -87,7 +87,6 @@ Const.UI = {
     TITLE = "StreamDeck WoW",
     TITLE_ICON_SIZE = 16,
     TITLE_ICON_GAP = 4,     -- separación entre el icono y el texto del título
-    HEIGHT = 230,
     PADDING = 20,
     SLOT_SIZE = 44,
     SLOT_GAP = 14,
@@ -102,6 +101,11 @@ Const.UI = {
     SLOT_BACKGROUND_ALPHA = 0.6,   -- fondo oscuro de cada hueco
     KEY_LABEL_OFFSET = 2,          -- separación del texto "Fn" sobre el hueco
     NAME_OFFSET = -3,              -- separación del nombre bajo el hueco
+    -- Bajo la última fila: su nombre, el texto de ayuda (hasta tres líneas al
+    -- ancho de la ventana) y el botón de recargar. El alto de la ventana sale
+    -- de sumar esto a las filas, así no se pisan si cambian las medidas.
+    LAST_NAME_SPACE = 20,          -- nombre bajo la última fila de huecos
+    HELP_HEIGHT = 40,              -- hueco para el texto de ayuda
     HELP_BOTTOM = 44,              -- altura del texto de ayuda desde abajo
     RELOAD_BUTTON_WIDTH = 200,
     RELOAD_BUTTON_HEIGHT = 24,
