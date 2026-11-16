@@ -527,6 +527,11 @@ StreamDeckWoW/                         ← carpeta del addon (raíz del reposito
 │   ├── MinimapButton.lua              componente de botón del minimapa (compartido)
 │   └── Minimap.lua                    el botón del minimapa de este addon
 ├── Media/Icon.tga                     icono del addon (lista de addons y chat)
+├── tests/                             pruebas fuera del juego (ver §14.6; WoW no lo carga)
+│   ├── test.lua                       las pruebas
+│   ├── api_stubs.lua                  API de WoW simulada (compartido)
+│   ├── run.js                         carga el addon y ejecuta las pruebas (compartido)
+│   └── package.json                   dependencia: fengari (compartido)
 └── StreamDeck/                        todo lo de Stream Deck (WoW no lo carga)
     ├── com.fsegado.wowdeck.sdPlugin/  el plugin
     │   ├── manifest.json              manifiesto: nombre, versión, acción, Node
@@ -625,6 +630,20 @@ Cada pieza tiene un único sitio donde se escribe su versión; el resto del cód
 `bin/package.json` no lleva versión a propósito: es un paquete privado que no se publica en npm, y así no hay una tercera copia que mantener.
 
 `## Interface: 16001` en el `.toc` es la versión de interfaz de WoW Forever 1.60.1. Si una actualización del juego la cambia, el addon aparecerá como incompatible; el valor nuevo se obtiene en el juego con `/dump select(4, GetBuildInfo())`.
+
+### 14.6. Pruebas
+
+El addon se puede probar sin abrir el juego: [`tests/run.js`](tests/run.js) carga sus archivos en el orden del `.toc`, como hace WoW, sobre una API del juego simulada en Lua ([`tests/api_stubs.lua`](tests/api_stubs.lua)), y ejecuta las pruebas de [`tests/test.lua`](tests/test.lua): huecos y atajos, arrastrar a la ventana, botón del minimapa, combate, comandos y registro de errores. Hace falta [Node.js](https://nodejs.org/).
+
+```bash
+cd tests
+npm install   # la primera vez: instala fengari, un Lua escrito en JavaScript
+npm test
+```
+
+Cada comprobación que pasa escribe `ok` y la primera que falla para con un error (y el comando sale con código 1). Las SavedVariables que quedarían se escriben en `tests/out/StreamDeckWoW.lua`: es el mismo formato que lee el plugin, así que sirven para probarlo.
+
+`run.js`, `api_stubs.lua` y `package.json` son compartidos: se editan en FranTools y se copian con su `tools/sync_shared.py`. Aquí corre Lua 5.3 y WoW usa Lua 5.1, así que lo que cambia entre ambos (como los números enteros y decimales) no queda probado.
 
 ---
 

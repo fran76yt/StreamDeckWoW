@@ -368,6 +368,102 @@ function Api.ItemIcon(id)
     return call(C_Item, "GetItemIconByID", id)
 end
 
+-- Llama a fn(tooltip, itemID) cada vez que el juego muestra el tooltip de un
+-- objeto, para añadirle líneas. El cliente moderno avisa con
+-- TooltipDataProcessor; los antiguos, con el script OnTooltipSetItem de cada
+-- tooltip. El ID puede llegar oculto (valor secreto): entonces no se llama.
+function Api.OnItemTooltip(fn)
+    if TooltipDataProcessor and Enum and Enum.TooltipDataType then
+        TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, function(tooltip, data)
+            local id = data and data.id
+            if id and not Api.IsSecret(id) then fn(tooltip, id) end
+        end)
+        return
+    end
+    for _, tooltip in ipairs({ GameTooltip, ItemRefTooltip }) do
+        tooltip:HookScript("OnTooltipSetItem", function(self)
+            local _, link = self:GetItem()
+            local id = link and tonumber(link:match("item:(%d+)"))
+            if id then fn(self, id) end
+        end)
+    end
+end
+
+--------------------------------------------------------------------------------
+-- Profesiones
+--------------------------------------------------------------------------------
+
+local function linkID(link, kind)
+    return link and tonumber(link:match(kind .. ":(%d+)"))
+end
+
+-- Cantidad que da una receta: algunas dan entre un mínimo y un máximo, y
+-- para hacer cuentas vale la media.
+local function averageMade(min, max)
+    min = min or 1
+    if not max or max == min then return min end
+    return (min + max) / 2
+end
+
+-- Receta del cliente moderno a partir de su ID. Solo cuentan los
+-- ingredientes obligatorios (los opcionales no hacen falta para hacerla).
+-- Una receta rara no debe romper la lectura de las demás: va protegida.
+local function modernRecipe(id)
+    local ok, info, schematic = pcall(function()
+        return C_TradeSkillUI.GetRecipeInfo(id), C_TradeSkillUI.GetRecipeSchematic(id, false)
+    end)
+    if not ok or not info then return nil end
+    local recipe = { id = id, learned = info.learned == true, reagents = {} }
+    if not schematic then return recipe end
+    if schematic.outputItemID then
+        recipe.output = { schematic.outputItemID, averageMade(schematic.quantityMin, schematic.quantityMax) }
+    end
+    for _, slot in ipairs(schematic.reagentSlotSchematics or {}) do
+        local item = slot.reagents and slot.reagents[1] and slot.reagents[1].itemID
+        if item and slot.required ~= false then
+            recipe.reagents[#recipe.reagents + 1] = { item, slot.quantityRequired }
+        end
+    end
+    return recipe
+end
+
+-- Receta de los clientes antiguos por su posición en la ventana (que solo
+-- enseña las aprendidas, más las cabeceras de categoría, sin enlace).
+local function classicRecipe(index)
+    local link = GetTradeSkillRecipeLink and GetTradeSkillRecipeLink(index)
+    local id = linkID(link, "enchant") or linkID(link, "spell")
+    if not id then return nil end
+    local recipe = { id = id, learned = true, reagents = {} }
+    local output = linkID(GetTradeSkillItemLink(index), "item")
+    if output then recipe.output = { output, averageMade(GetTradeSkillNumMade(index)) } end
+    for r = 1, GetTradeSkillNumReagents(index) or 0 do
+        local item = linkID(GetTradeSkillReagentItemLink(index, r), "item")
+        local _, _, count = GetTradeSkillReagentInfo(index, r)
+        if item then recipe.reagents[#recipe.reagents + 1] = { item, count } end
+    end
+    return recipe
+end
+
+-- Recetas de la ventana de profesión abierta, tal y como las da el juego, o
+-- una lista vacía si no hay ninguna abierta. Cada una:
+--   { id = hechizo, learned = si la sabe,
+--     reagents = { { objeto, cantidad }, ... }, output = { objeto, cantidad } }
+-- (output es nil si no da un objeto, como un encantamiento). El cliente
+-- moderno las da todas con C_TradeSkillUI, también las que aún no sabe; los
+-- antiguos, solo las aprendidas, una a una por su posición.
+function Api.OpenTradeSkillRecipes()
+    local recipes = {}
+    local all = apiFunction(C_TradeSkillUI, "GetAllRecipeIDs")
+    if all then
+        for _, id in ipairs(all() or {}) do recipes[#recipes + 1] = modernRecipe(id) end
+        return recipes
+    end
+    for i = 1, GetNumTradeSkills and GetNumTradeSkills() or 0 do
+        recipes[#recipes + 1] = classicRecipe(i)
+    end
+    return recipes
+end
+
 -- Clase y subclase del objeto (números, no dependen del idioma): por ejemplo
 -- 2/2 es un arco y 6/2 flechas. GetItemInfoInstant no necesita que el objeto
 -- esté en caché, así que responde siempre al momento.

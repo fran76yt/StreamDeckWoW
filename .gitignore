@@ -13,6 +13,9 @@ StreamDeck/profile/icons/
 # La plantilla pública es StreamDeck/profile/local.example.json.
 StreamDeck/profile/local.json
 
+# SavedVariables simuladas que escriben las pruebas (tests/)
+tests/out/
+
 # Archivos del sistema
 Thumbs.db
 desktop.ini
