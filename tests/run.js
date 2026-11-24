@@ -2,8 +2,8 @@
 Pruebas del addon fuera del juego
 =================================
 
-Archivo compartido: se edita en FranTools y se copia a los otros addons con
-tools/sync_shared.py.
+Parte de FranLib: se edita en el repositorio FranLib y se copia a la carpeta
+tests/ de cada addon con su tools/sync.py.
 
 Carga el addon como lo hace WoW (los archivos del .toc en orden, cada uno
 llamado con (nombre, ns)) sobre una API del juego simulada en Lua, ejecuta
@@ -33,13 +33,28 @@ const path = require("path");
 const { lua, lauxlib, lualib, to_luastring } = require("fengari");
 
 const TESTS_DIR = __dirname;
-const ADDON_DIR = path.resolve(TESTS_DIR, "..");
+
+function tocIn(dir) {
+  return fs.existsSync(dir) ? fs.readdirSync(dir).find((f) => f.endsWith(".toc")) : undefined;
+}
+
+// Carpeta del addon que se prueba: la de encima de tests/ si tiene .toc (un
+// addon). Si no, tests/fixture/, el addon de pruebas de la propia FranLib,
+// que no es un addon de verdad y no debe tener .toc en su raíz (WoW lo
+// cargaría).
+function findAddonDir() {
+  const parent = path.resolve(TESTS_DIR, "..");
+  if (tocIn(parent)) return parent;
+  const fixture = path.join(TESTS_DIR, "fixture");
+  if (tocIn(fixture)) return fixture;
+  throw new Error("No hay ningún .toc en " + parent + " ni en " + fixture);
+}
+
+const ADDON_DIR = findAddonDir();
 
 // El .toc de la carpeta del addon: su nombre es el del addon.
 function findToc() {
-  const toc = fs.readdirSync(ADDON_DIR).find((f) => f.endsWith(".toc"));
-  if (!toc) throw new Error("No hay ningún .toc en " + ADDON_DIR);
-  return toc;
+  return tocIn(ADDON_DIR);
 }
 
 // Archivos que carga el .toc (las líneas que no son comentarios ni metadatos).
@@ -113,7 +128,7 @@ function writeSavedVariables(L, addonName) {
   const outFile = path.join(TESTS_DIR, "out", addonName + ".lua");
   fs.mkdirSync(path.dirname(outFile), { recursive: true });
   fs.writeFileSync(outFile, lua.lua_tojsstring(L, -1));
-  console.log("SavedVariables simuladas en", path.relative(ADDON_DIR, outFile));
+  console.log("SavedVariables simuladas en", path.relative(path.resolve(TESTS_DIR, ".."), outFile));
 }
 
 function main() {

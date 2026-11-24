@@ -12,11 +12,10 @@ y una tabla privada que comparten todos sus archivos. Usamos esa tabla (ns,
 "namespace") para repartir el código en módulos sin crear variables globales,
 que podrían chocar con otros addons.
 
-Los archivos compartidos con FranTools (Core/Util.lua, Core/Api.lua,
-Core/ErrorLog.lua, UI/Tooltip.lua y UI/MinimapButton.lua, que se editan en
-FranTools y se copian con su tools/sync_shared.py) leen de aquí ADDON_NAME,
-ICON, MSG.SETTINGS_CHANGED, CHAT_PREFIX, UI.TOOLTIP_HELP_COLOR, MINIMAP y
-ERROR_LOG: los dos addons tienen que definirlos.
+El código común con los otros addons (utilidades, API del juego, registro
+de errores, tooltips, casillas y botón del minimapa) está en la librería
+FranLib, incrustada en Libs/FranLib. Lo que necesita saber de este addon se
+lo dice ns.FranLibConfig, al final de este archivo.
 ]]
 
 local addonName, ns = ...
@@ -63,7 +62,6 @@ Const.ITEM_INFO_EVENT = "GET_ITEM_INFO_RECEIVED"
 Const.MSG = {
     SLOT_CHANGED = "SLOT_CHANGED",     -- el jugador cambió un hueco en la ventana
     SLOTS_UPDATED = "SLOTS_UPDATED",   -- se han recalculado y asignado los huecos
-    SETTINGS_CHANGED = "SETTINGS_CHANGED",   -- ha cambiado una opción (lo usa Util.Switch, compartido)
 }
 
 -- Chat: prefijo de los mensajes (icono + nombre).
@@ -113,35 +111,14 @@ Const.UI = {
     -- Colores de las líneas del tooltip (RGB 0-1).
     TOOLTIP_KEY_COLOR = { 0.2, 1, 0.6 },
     TOOLTIP_WARNING_COLOR = { 1, 0.4, 0.4 },
-    TOOLTIP_HELP_COLOR = { 0.8, 0.8, 0.8 },
 }
 
--- Registro de errores de Lua (Core/ErrorLog.lua, compartido).
-Const.ERROR_LOG = {
-    SAVED_VAR = "StreamDeckWoWLog",       -- variable de la cuenta (## SavedVariables del .toc)
-    COMMAND = "/sdeck errores",       -- para el aviso del chat y la ayuda
-    MAX_ENTRIES = 50,                  -- errores distintos que se guardan como mucho
-    MAX_STACK_CHARS = 2000,            -- tope de la pila de cada uno, para no inflar el archivo
-    STACK_COLOR = "999999",            -- gris para la pila en el chat
-}
-
--- Botón del minimapa. Las medidas y texturas son las del aro estándar que usan
--- los botones de minimapa de casi todos los addons, para que no desentone.
--- Las posiciones son píxeles desde la esquina superior izquierda del botón.
-Const.MINIMAP = {
-    BUTTON_NAME = "StreamDeckWoWMinimapButton",   -- nombre global (otros addons de minimapa lo reconocen)
-    DEFAULT_ANGLE = 225,     -- grados desde la derecha, en sentido antihorario: abajo a la izquierda
-    EDGE_OFFSET = 5,         -- cuánto sobresale el botón del borde del minimapa
-    FRAME_LEVEL = 8,         -- por encima de los iconos del propio minimapa
-    SIZE = 31,
-    BORDER_SIZE = 53,
-    BORDER_TEXTURE = "Interface\\Minimap\\MiniMap-TrackingBorder",
-    BACKGROUND_SIZE = 20,
-    BACKGROUND_OFFSET = { 7, -5 },
-    BACKGROUND_TEXTURE = "Interface\\Minimap\\UI-Minimap-Background",
-    ICON_SIZE = 17,
-    ICON_OFFSET = { 7, -6 },
-    -- Máscara circular para que el icono (cuadrado) encaje en el aro.
-    ICON_MASK = "Interface\\CharacterFrame\\TempPortraitAlphaMask",
-    HIGHLIGHT_TEXTURE = "Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight",
+-- Lo que FranLib (Libs/FranLib, ver su Config.lua) necesita saber de este
+-- addon: con qué icono y prefijo habla en el chat, dónde apunta sus errores y
+-- cómo se llama su botón del minimapa.
+ns.FranLibConfig = {
+    icon = Const.ICON,
+    chatPrefix = Const.CHAT_PREFIX,
+    errorLog = { savedVar = "StreamDeckWoWLog", command = "/sdeck errores" },
+    minimap = { buttonName = "StreamDeckWoWMinimapButton", defaultAngle = 225 },
 }

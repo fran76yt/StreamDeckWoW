@@ -180,7 +180,7 @@ geterrorhandler()("Interface/AddOns/OtroAddon/Main.lua:3: prueba de error ajena"
 check(#Log.Entries() == base + 1 and ownErrors() == 3, "los errores de otros addons no se apuntan, pero siguen su camino")
 fakeStack = string.rep("Interface/AddOns/StreamDeckWoW/Core/Larga.lua:1: in function <z>\n", 100)
 geterrorhandler()("prueba de error larga")
-check(#Log.Entries()[base + 2].stack <= ns.Const.ERROR_LOG.MAX_STACK_CHARS, "la pila se recorta")
+check(#Log.Entries()[base + 2].stack <= ns.FranLib.errorLog.MAX_STACK_CHARS, "la pila se recorta")
 fakeStack = nil
 printed = {}
 SlashCmdList.STREAMDECKWOW("errores")
@@ -192,7 +192,7 @@ printed = {}
 SlashCmdList.STREAMDECKWOW("errores 9")
 check(hasPrinted("no hay ningún error con el número 9"), "un número que no está")
 for i = 1, 60 do geterrorhandler()("prueba de error número " .. i) end
-check(#Log.Entries() == ns.Const.ERROR_LOG.MAX_ENTRIES and Log.Entries()[1].message == "prueba de error número 11", "como mucho 50: se van los más antiguos")
+check(#Log.Entries() == ns.FranLib.errorLog.MAX_ENTRIES and Log.Entries()[1].message == "prueba de error número 11", "como mucho 50: se van los más antiguos")
 SlashCmdList.STREAMDECKWOW("errores borrar")
 check(#Log.Entries() == 0 and #StreamDeckWoWLog.entries == 0, "/sdeck errores borrar vacía la lista")
 local kept = {} for _, l in ipairs(printed) do if not l:find("prueba de error", 1, true) then kept[#kept + 1] = l end end

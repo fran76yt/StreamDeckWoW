@@ -2,8 +2,8 @@
 Utilidades genéricas
 ====================
 
-Archivo compartido con StreamDeckWoW y FranFundir: se edita en FranTools y
-se copia con tools/sync_shared.py.
+Parte de FranLib (ver Config.lua): se edita en el repositorio FranLib y se
+copia a cada addon con su tools/sync.py.
 
 Piezas que servirían igual en cualquier otro addon: llamadas protegidas,
 eventos, mensajes entre módulos, agrupar llamadas, esperar a salir de
@@ -11,10 +11,14 @@ combate, buscar en listas y escribir en el chat.
 ]]
 
 local _, ns = ...
-local Const = ns.Const
+local Lib = ns.FranLib
 
 local Util = {}
 ns.Util = Util
+
+-- Mensaje interno que lanzan los interruptores al cambiar una opción: las
+-- ventanas lo escuchan con Util.Listen(Util.SETTINGS_CHANGED, ...).
+Util.SETTINGS_CHANGED = Lib.Const.SETTINGS_CHANGED
 
 --------------------------------------------------------------------------------
 -- Llamadas protegidas
@@ -218,7 +222,7 @@ function Util.Switch(settings, onChange)
     function switch.SetEnabled(on)
         settings().off = (not on) or nil
         onChange(on)
-        Util.Fire(Const.MSG.SETTINGS_CHANGED)
+        Util.Fire(Util.SETTINGS_CHANGED)
     end
     -- Devuelve true si queda encendida.
     function switch.Toggle()
@@ -242,7 +246,7 @@ function Util.CombatOnly(settings, anytimeDefault, onChange)
     function option.SetCombatOnly(on)
         Util.SetOverride(settings(), "anytime", not on, anytimeDefault)
         onChange(on)
-        Util.Fire(Const.MSG.SETTINGS_CHANGED)
+        Util.Fire(Util.SETTINGS_CHANGED)
     end
     return option
 end
@@ -254,5 +258,5 @@ end
 
 -- Mensaje en el chat con el prefijo del addon. Acepta formato como string.format.
 function Util.Print(fmt, ...)
-    print(Const.CHAT_PREFIX .. ": " .. fmt:format(...))
+    print(Lib.chatPrefix .. ": " .. fmt:format(...))
 end

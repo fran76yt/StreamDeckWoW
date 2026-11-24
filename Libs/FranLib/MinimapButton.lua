@@ -2,8 +2,8 @@
 Botón del minimapa
 ==================
 
-Componente compartido con StreamDeckWoW y FranFundir (ver
-tools/sync_shared.py en FranTools): se edita allí y se copia a los demás.
+Parte de FranLib (ver Config.lua): se edita en el repositorio FranLib y se
+copia a cada addon con su tools/sync.py.
 
 Un botón redondo pegado al borde del minimapa, con el icono del addon. Cada
 addon dice qué hace cada clic y qué pone su tooltip:
@@ -15,8 +15,9 @@ addon dice qué hace cada clic y qué pone su tooltip:
   })
   button:ToggleShown()   -- oculta o muestra el botón; true si queda visible
 
-Arrastrándolo se mueve alrededor del minimapa. Usa Const.MINIMAP (medidas,
-texturas y nombre global) y Const.ICON del addon.
+Arrastrándolo se mueve alrededor del minimapa. Las medidas y texturas son las
+de la librería; el nombre global, la posición inicial y el icono, los que da
+el addon en ns.FranLibConfig.
 
 Está hecho a mano, sin LibDBIcon: es poco código y así el addon no depende de
 librerías externas que haya que incluir y mantener al día.
@@ -27,8 +28,8 @@ de escala. Se guarda por personaje, junto al resto de datos del addon.
 ]]
 
 local _, ns = ...
-local Const, Util = ns.Const, ns.Util
-local M = Const.MINIMAP
+local Lib, Util = ns.FranLib, ns.Util
+local M = Lib.minimap
 
 local MinimapButton = {}
 ns.MinimapButton = MinimapButton
@@ -106,7 +107,7 @@ end
 -- tapa los bordes del icono.
 local function createTextures(b)
     addTexture(b, "BACKGROUND", M.BACKGROUND_TEXTURE, M.BACKGROUND_SIZE, M.BACKGROUND_OFFSET)
-    local icon = addTexture(b, "ARTWORK", Const.ICON, M.ICON_SIZE, M.ICON_OFFSET)
+    local icon = addTexture(b, "ARTWORK", Lib.icon, M.ICON_SIZE, M.ICON_OFFSET)
     -- SetMask no existe en clientes antiguos; sin él el icono queda cuadrado.
     if icon.SetMask then icon:SetMask(M.ICON_MASK) end
     addTexture(b, "OVERLAY", M.BORDER_TEXTURE, M.BORDER_SIZE)

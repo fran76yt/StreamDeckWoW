@@ -2,8 +2,8 @@
 Capa de acceso a la API de WoW
 ==============================
 
-Archivo compartido con StreamDeckWoW: se edita en FranTools y se copia con
-tools/sync_shared.py.
+Parte de FranLib (ver Config.lua): se edita en el repositorio FranLib y se
+copia a cada addon con su tools/sync.py.
 
 El resto del addon no llama directamente a la API del juego para hechizos,
 objetos, macros, el cursor o los vendedores: pasa por estas funciones. Motivos:
@@ -45,7 +45,7 @@ end
 -- Un campo del .toc ("Version", "Title"...). La versión solo se escribe allí.
 function Api.AddOnMetadata(field)
     local f = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
-    return f and f(ns.Const.ADDON_NAME, field)
+    return f and f(ns.FranLib.addonName, field)
 end
 
 function Api.AddOnVersion()
@@ -128,6 +128,23 @@ end
 function Api.InstanceType()
     local inInstance, kind = IsInInstance()
     return inInstance and kind or "none"
+end
+
+-- Registro de combate a archivo (lo mismo que /combatlog). LoggingCombat()
+-- sin argumentos dice si está encendido; con true o false lo cambia. Va con
+-- pcall por si algún cliente la protege: entonces no se puede y se devuelve
+-- false en vez de cortar el addon con un error.
+function Api.IsLoggingCombat()
+    if not LoggingCombat then return false end
+    local ok, on = pcall(LoggingCombat)
+    return ok and on and true or false
+end
+
+-- Devuelve true si el registro queda como se ha pedido.
+function Api.SetLoggingCombat(on)
+    if not LoggingCombat then return false end
+    pcall(LoggingCombat, on and true or false)
+    return Api.IsLoggingCombat() == (on and true or false)
 end
 
 -- En grupo o en banda.

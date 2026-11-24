@@ -81,8 +81,8 @@ local function onEnter(self)
     if s and s.kind and not s.active then
         GameTooltip:AddLine("Todavía no lo tienes: la tecla no hará nada.", unpack(UI.TOOLTIP_WARNING_COLOR))
     end
-    GameTooltip:AddLine("Arrastra aquí un hechizo, objeto o macro.", unpack(UI.TOOLTIP_HELP_COLOR))
-    GameTooltip:AddLine("Clic derecho: valor por defecto.  Mayús+clic derecho: vaciar.", unpack(UI.TOOLTIP_HELP_COLOR))
+    GameTooltip:AddLine("Arrastra aquí un hechizo, objeto o macro.", unpack(ns.Tooltip.HELP_COLOR))
+    GameTooltip:AddLine("Clic derecho: valor por defecto.  Mayús+clic derecho: vaciar.", unpack(ns.Tooltip.HELP_COLOR))
     GameTooltip:Show()
 end
 

@@ -38,15 +38,20 @@
 ## SavedVariables: StreamDeckWoWLog
 
 # Orden de carga: cada módulo usa los que se han cargado antes que él.
-#   Constantes y utilidades genéricas (Util y Api, compartidas con FranTools)
+#   Constantes del addon (y lo que FranLib necesita saber de él)
 Core\Constants.lua
-Core\Util.lua
-#   Acceso a la API del juego y datos
+#   Librería común (Libs/FranLib, copia del repositorio FranLib): utilidades,
+#   API del juego, registro de errores (lo antes posible, para que apunte
+#   también los errores al cargar lo demás) y componentes de interfaz
+Libs\FranLib\Config.lua
+Libs\FranLib\Util.lua
+Libs\FranLib\Api.lua
+Libs\FranLib\ErrorLog.lua
+Libs\FranLib\Tooltip.lua
+Libs\FranLib\Checkbox.lua
+Libs\FranLib\MinimapButton.lua
+#   Atajos de los huecos y datos guardados
 Core\Keys.lua
-Core\Api.lua
-# Registro de errores: lo antes posible, para que apunte también los errores
-# al cargar los archivos siguientes
-Core\ErrorLog.lua
 Core\Storage.lua
 #   Valores por defecto: registro, comunes y uno por clase
 Defaults\Defaults.lua
@@ -56,11 +61,9 @@ Defaults\Classes\Hunter.lua
 Core\Slots.lua
 Core\Bindings.lua
 #   Interfaz
-UI\Tooltip.lua
 UI\SlotButton.lua
 UI\ConfigWindow.lua
-#   Botón del minimapa (componente compartido y el de este addon)
-UI\MinimapButton.lua
+#   Botón del minimapa de este addon (el componente es de FranLib)
 UI\Minimap.lua
 #   Comandos de chat (usa todo lo anterior)
 Core\Commands.lua

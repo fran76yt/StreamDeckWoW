@@ -147,10 +147,8 @@ Todos los archivos del addon reciben la misma tabla privada (`local _, ns = ...`
 | Archivo | Responsabilidad |
 |---|---|
 | [`Core/Constants.lua`](Core/Constants.lua) | Todos los valores fijos: número de huecos, modificadores del atajo, eventos, colores, medidas de la ventana y del botón del minimapa |
-| [`Core/Util.lua`](Core/Util.lua) | *Compartido con FranTools.* Utilidades genéricas (solo dependen de las constantes): llamadas protegidas (`Util.SafeCall`: cada función de un evento se ejecuta aparte, y si falla no corta las demás), suscripción a eventos, mensajes entre módulos, temporizadores y *debounce*, ejecutar fuera de combate, interruptores de opciones (`Util.Switch`), guardar solo lo que difiere del valor por defecto (`Util.SetOverride`), escribir en el chat |
+| [`Libs/FranLib/`](Libs/FranLib) | *Librería común FranLib, incrustada (es una copia: se edita en el repositorio FranLib).* Utilidades (llamadas protegidas con `Util.SafeCall`, eventos, mensajes entre módulos, interruptores de opciones, chat), la única puerta a la API del juego, el registro de errores (`/sdeck errores`), tooltips de ayuda, casillas y el botón del minimapa |
 | [`Core/Keys.lua`](Core/Keys.lua) | Traduce un hueco a su atajo (`ALT-CTRL-SHIFT-F3`) y a su texto legible (`Ctrl+Alt+Mayús+F3`) |
-| [`Core/Api.lua`](Core/Api.lua) | *Compartido con FranTools.* Única puerta a la API del juego para hechizos, objetos, equipo y bolsas, macros, cursor, mascota, beneficios (auras) del jugador, amenaza y barras de nombre, vendedores y dinero, tipo de instancia, avisos en pantalla y metadatos. Usa la API moderna (`C_Spell`, `C_Item`, `C_SpellBook`); donde hay una equivalente clásica (hechizo conocido, número de objetos, metadatos) la usa como respaldo, y si falta una función de hechizos u objetos devuelve vacío en lugar de dar un error de Lua (las de macros, cursor, jugador y mascota se usan directamente) |
-| [`Core/ErrorLog.lua`](Core/ErrorLog.lua) | *Compartido con FranTools.* Registro de errores: se pone delante del manejador de errores del juego, apunta los de este addon en una variable de la cuenta (sin repetir, con contador y como mucho 50) y los muestra con `/sdeck errores` |
 | [`Core/Storage.lua`](Core/Storage.lua) | Único módulo que toca la variable guardada `StreamDeckWoWChar` (huecos y preferencias del botón del minimapa) |
 | [`Defaults/Defaults.lua`](Defaults/Defaults.lua) | Registro de valores por defecto: comunes y por clase |
 | [`Defaults/Common.lua`](Defaults/Common.lua) | Huecos comunes a todas las clases |
@@ -158,13 +156,11 @@ Todos los archivos del addon reciben la misma tabla privada (`local _, ns = ...`
 | [`Core/Slots.lua`](Core/Slots.lua) | Qué hay en cada hueco: definición, resolución, foto para el plugin |
 | [`Core/Bindings.lua`](Core/Bindings.lua) | Asigna los atajos y decide cuándo recalcular |
 | [`UI/SlotButton.lua`](UI/SlotButton.lua) | Componente de botón de hueco: icono, arrastrar y soltar, tooltip |
-| [`UI/Tooltip.lua`](UI/Tooltip.lua) | *Compartido con FranTools.* Tooltips de ayuda (título y líneas en gris) que comparten todos los componentes |
 | [`UI/ConfigWindow.lua`](UI/ConfigWindow.lua) | La ventana `/sdeck config`: los 12 huecos |
-| [`UI/MinimapButton.lua`](UI/MinimapButton.lua) | *Compartido con FranTools.* Componente de botón del minimapa: se mueve alrededor del minimapa y se puede esconder; cada addon dice qué hace cada clic. Hecho a mano, sin LibDBIcon, para no depender de librerías externas |
 | [`UI/Minimap.lua`](UI/Minimap.lua) | El botón del minimapa de este addon: clic abre la ventana y clic derecho muestra el estado |
 | [`Core/Commands.lua`](Core/Commands.lua) | Comandos `/sdeck`; los publica en `ns.Commands.Run` para que el botón del minimapa los reutilice |
 
-Los archivos marcados como compartidos son iguales en los dos addons. Se editan en FranTools y se copian aquí con su script `tools/sync_shared.py` (`--check` solo comprueba que coinciden). Cada addon lleva su copia, como se hace con las librerías de WoW, para que StreamDeckWoW funcione sin FranTools y al revés.
+La librería común FranLib es la misma en StreamDeckWoW, FranTools y FranFundir. Va incrustada en `Libs/FranLib/`, como se hace con las librerías de WoW, para que cada addon funcione sin los otros. No se edita aquí: el original está en el repositorio FranLib y se copia con su `tools/sync.py` (`--check` solo comprueba que coincide). Lo que necesita saber de este addon está en `ns.FranLibConfig`, al final de [`Core/Constants.lua`](Core/Constants.lua).
 
 ### Override bindings
 
@@ -183,7 +179,7 @@ Los módulos no se llaman directamente cuando eso crearía dependencias circular
 
 - `SLOT_CHANGED`: el jugador ha cambiado un hueco → `Bindings` recalcula.
 - `SLOTS_UPDATED`: se han asignado los huecos → la ventana se redibuja y, la primera vez, se escribe el resumen en el chat.
-- `SETTINGS_CHANGED`: lo emite `Util.Switch` (compartido) al cambiar una opción; este addon no lo usa, FranTools sí.
+- `Util.SETTINGS_CHANGED`: lo emite `Util.Switch` (de FranLib) al cambiar una opción; este addon no lo usa, FranTools sí.
 
 ### Tipos de entrada de un hueco
 
@@ -506,12 +502,10 @@ Los valores de una clase tienen prioridad sobre los comunes con el mismo número
 ```
 StreamDeckWoW/                         ← carpeta del addon (raíz del repositorio)
 ├── StreamDeckWoW.toc                  manifiesto del addon: metadatos y orden de carga
+├── Libs/FranLib/                     librería común (copia de FranLib: no se edita aquí)
 ├── Core/                              núcleo del addon
 │   ├── Constants.lua                  valores fijos
-│   ├── Util.lua                       utilidades genéricas (compartido)
 │   ├── Keys.lua                       atajos de cada hueco
-│   ├── Api.lua                        acceso a la API del juego (compartido)
-│   ├── ErrorLog.lua                   registro de errores de Lua (compartido)
 │   ├── Storage.lua                    SavedVariables
 │   ├── Slots.lua                      lógica de los huecos
 │   ├── Bindings.lua                   asignación de atajos
@@ -521,17 +515,15 @@ StreamDeckWoW/                         ← carpeta del addon (raíz del reposito
 │   ├── Common.lua                     todas las clases
 │   └── Classes/Hunter.lua             cazador
 ├── UI/                                interfaz
-│   ├── Tooltip.lua                    tooltips de ayuda (compartido)
 │   ├── SlotButton.lua                 botón de hueco
 │   ├── ConfigWindow.lua               ventana /sdeck config
-│   ├── MinimapButton.lua              componente de botón del minimapa (compartido)
 │   └── Minimap.lua                    el botón del minimapa de este addon
 ├── Media/Icon.tga                     icono del addon (lista de addons y chat)
 ├── tests/                             pruebas fuera del juego (ver §14.6; WoW no lo carga)
 │   ├── test.lua                       las pruebas
-│   ├── api_stubs.lua                  API de WoW simulada (compartido)
-│   ├── run.js                         carga el addon y ejecuta las pruebas (compartido)
-│   └── package.json                   dependencia: fengari (compartido)
+│   ├── api_stubs.lua                  API de WoW simulada (de FranLib)
+│   ├── run.js                         carga el addon y ejecuta las pruebas (de FranLib)
+│   └── package.json                   dependencia: fengari (de FranLib)
 └── StreamDeck/                        todo lo de Stream Deck (WoW no lo carga)
     ├── com.fsegado.wowdeck.sdPlugin/  el plugin
     │   ├── manifest.json              manifiesto: nombre, versión, acción, Node
@@ -643,7 +635,7 @@ npm test
 
 Cada comprobación que pasa escribe `ok` y la primera que falla para con un error (y el comando sale con código 1). Las SavedVariables que quedarían se escriben en `tests/out/StreamDeckWoW.lua`: es el mismo formato que lee el plugin, así que sirven para probarlo.
 
-`run.js`, `api_stubs.lua` y `package.json` son compartidos: se editan en FranTools y se copian con su `tools/sync_shared.py`. Aquí corre Lua 5.3 y WoW usa Lua 5.1, así que lo que cambia entre ambos (como los números enteros y decimales) no queda probado.
+`run.js`, `api_stubs.lua` y `package.json` son de FranLib: se editan en su repositorio y se copian con su `tools/sync.py`. Aquí corre Lua 5.3 y WoW usa Lua 5.1, así que lo que cambia entre ambos (como los números enteros y decimales) no queda probado.
 
 ---
 

@@ -2,8 +2,9 @@
 API de WoW simulada para las pruebas
 ====================================
 
-Archivo compartido: se edita en FranTools y se copia a los otros addons con
-tools/sync_shared.py. tests/run.js lo carga antes que el addon.
+Parte de FranLib: se edita en el repositorio FranLib y se copia a la carpeta
+tests/ de cada addon con su tools/sync.py. tests/run.js lo carga antes que
+el addon.
 
 Lo justo para que los addons carguen y se puedan probar fuera del juego:
 frames que apuntan lo que se les hace (textos, scripts, si se ven), eventos
@@ -149,6 +150,14 @@ function ReloadUI() end
 pet, instance, petBar, warnings, sounds = false, "none", {}, {}, 0
 function UnitExists(u) return u == "player" or (u == "pet" and pet) end
 function IsInInstance() return instance ~= "none", instance end
+-- Registro de combate (/combatlog). combatLogLocked simula un cliente que
+-- protege la función: da error al intentar cambiarla.
+combatLogging, combatLogLocked = false, false
+function LoggingCombat(on)
+  if on == nil then return combatLogging end
+  if combatLogLocked then error("LoggingCombat protegida") end
+  combatLogging = on
+end
 function GetPetActionInfo(i) local a = petBar[i] if a then return a[1], nil, false, false, true, a[3], a[2] end end
 RaidWarningFrame, ChatTypeInfo = {}, { RAID_WARNING = {} }
 function RaidNotice_AddMessage(_, text) warnings[#warnings+1] = text end

@@ -2,11 +2,11 @@
 Registro de errores
 ===================
 
-Archivo compartido con StreamDeckWoW: se edita en FranTools y se copia con
-tools/sync_shared.py.
+Parte de FranLib (ver Config.lua): se edita en el repositorio FranLib y se
+copia a cada addon con su tools/sync.py.
 
 Apunta los errores de Lua de este addon en una variable de la cuenta
-(Const.ERROR_LOG.SAVED_VAR, declarada en el .toc como SavedVariables), para
+(errorLog.savedVar de ns.FranLibConfig, declarada en el .toc como SavedVariables), para
 poder verlos después con un comando aunque el juego tenga apagados los avisos
 de error (lo normal) o hayan salido con otro personaje.
 
@@ -30,15 +30,15 @@ que aquí no llegue nada: entonces los errores se ven en ese addon.
 ]]
 
 local _, ns = ...
-local Const, Util, Api = ns.Const, ns.Util, ns.Api
-local C = Const.ERROR_LOG
+local Lib, Util, Api = ns.FranLib, ns.Util, ns.Api
+local C = Lib.errorLog
 
 local ErrorLog = {}
 ns.ErrorLog = ErrorLog
 
 -- Ruta de los archivos de este addon en mensajes y pilas
 -- ("Interface/AddOns/<addon>/...", con / o \ según el cliente).
-local OWN_PATH = "Interface[/\\]AddOns[/\\]" .. Const.ADDON_NAME .. "[/\\]"
+local OWN_PATH = "Interface[/\\]AddOns[/\\]" .. Lib.addonName .. "[/\\]"
 
 local previousHandler   -- el manejador que había antes que el nuestro
 local pending = {}      -- errores de antes de que el juego cargue la variable
@@ -129,7 +129,7 @@ Api.SetErrorHandler(onError)
 -- El juego carga las SavedVariables después de leer todos los archivos del
 -- addon: entonces se pasa a ellas lo que se haya apuntado mientras.
 Util.On("ADDON_LOADED", function(name)
-    if name ~= Const.ADDON_NAME or loaded then return end
+    if name ~= Lib.addonName or loaded then return end
     loaded = true
     local list = entries()
     for _, err in ipairs(pending) do store(list, err) end
