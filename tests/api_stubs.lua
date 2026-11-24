@@ -52,6 +52,17 @@ function newObj()
       if k == "GetStringHeight" then local t = rawget(self, "_text") return t and math.ceil(#t / 60) * 12 or 0 end
       if k == "SetTexture" then rawset(self, "_tex", (...)) end
       if k == "SetColorTexture" then rawset(self, "_ctex", { ... }) end
+      if k == "SetVertexColorFromBoolean" then
+        if secretPaintRefused then error("SetVertexColorFromBoolean(): secret values not allowed") end
+        rawset(self, "_vcb", { ... })
+      end
+      if k == "SetFormattedText" then rawset(self, "_fmt", { ... }) end
+      if k == "SetValue" then rawset(self, "_value", (...)) end
+      if k == "GetStatusBarTexture" then
+        local t = rawget(self, "_bartex") or newObj()
+        rawset(self, "_bartex", t)
+        return t
+      end
       if k == "SetTextColor" then rawset(self, "_color", { ... }) end
       if k == "GetParent" then return rawget(self, "_parent") end
       if k == "SetDesaturated" then rawset(self, "_desat", (...)) end
@@ -133,6 +144,11 @@ playerBuffs, dead = {}, false
 -- Valores secretos del cliente moderno: en combate oculta auras y amenaza.
 SECRET = setmetatable({}, { __tostring = function() return "secreto" end })
 function issecretvalue(v) return v == SECRET end
+-- Lo que acepta valores secretos para pintarlos: se apunta qué se le pasa.
+-- Con secretPaintRefused, el juego no deja (para probar ese caso).
+secretPaintRefused = false
+function CreateColor(r, g, b, a) return { r = r, g = g, b = b, a = a } end
+C_CurveUtil = { EvaluateColorFromBoolean = function(v, ifTrue, ifFalse) return { fromBoolean = v, ifTrue = ifTrue, ifFalse = ifFalse } end }
 aurasSecret, aurasByIdSecret = false, false
 C_UnitAuras = {
   GetBuffDataByIndex = function(_, i)

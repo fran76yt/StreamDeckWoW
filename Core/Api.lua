@@ -175,12 +175,17 @@ end
 -- o nil si no está en su lista de amenaza (o si no existe). tanking: va a por
 -- él. status, de UnitThreatSituation: 0 poca, 1 más que quien tanquea (está
 -- a punto de quitarle el agro), 2 y 3 tanqueando. percent es el escalado: a
--- 100 le quita el agro a quien lo tiene. Si el cliente la oculta (valor
--- secreto, en combate) devuelve nil, true.
+-- 100 le quita el agro a quien lo tiene.
+-- Si el cliente la oculta (valor secreto, en combate) devuelve { secret =
+-- true, tanking, status, percent } con los valores tal cual: el addon no
+-- puede mirarlos (ni compararlos ni usarlos en un "if"), pero sí pasarlos a
+-- la interfaz para que los pinte (UI/ThreatBadge.lua).
 function Api.Threat(who, unit)
     if not UnitDetailedThreatSituation or not UnitExists(who) then return nil end
     local tanking, status, percent = UnitDetailedThreatSituation(who, unit)
-    if anySecret(tanking, status, percent) then return nil, true end
+    if anySecret(tanking, status, percent) then
+        return { secret = true, tanking = tanking, status = status, percent = percent }
+    end
     if status == nil then return nil end
     return { tanking = tanking and true or false, status = status, percent = percent or 0 }
 end
@@ -221,6 +226,19 @@ function Api.NamePlateHealthBar(plate)
     if type(frame) ~= "table" then return nil end
     local container = frame.HealthBarsContainer
     return frame.healthBar or (type(container) == "table" and container.healthBar) or nil
+end
+
+-- Color para pintar con las funciones que aceptan valores secretos
+-- (Region:SetVertexColorFromBoolean y demás), que piden un ColorMixin.
+function Api.Color(rgb)
+    return CreateColor(rgb[1], rgb[2], rgb[3], rgb[4] or 1)
+end
+
+-- De dos colores, el primero si value es cierto. value puede ser secreto: el
+-- juego lo decide sin que el addon lo vea, y el color que devuelve también
+-- es secreto (solo sirve para pasárselo a la interfaz).
+function Api.ColorFromBoolean(value, ifTrue, ifFalse)
+    return C_CurveUtil.EvaluateColorFromBoolean(value, ifTrue, ifFalse)
 end
 
 -- Si el cliente tiene la función de amenaza (aunque luego la oculte en
