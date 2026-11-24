@@ -160,6 +160,14 @@ function Util.FirstMatch(list, test, build)
     end
 end
 
+-- Si la lista tiene ese valor.
+function Util.Contains(list, value)
+    for _, v in ipairs(list) do
+        if v == value then return true end
+    end
+    return false
+end
+
 -- Parte una lista en trozos de "size" elementos (el último puede ser menor).
 function Util.Chunk(list, size)
     local chunks = {}
@@ -218,6 +226,25 @@ function Util.Switch(settings, onChange)
         return switch.IsEnabled()
     end
     return switch
+end
+
+-- Preferencia "solo en combate" de un aviso, con el mismo patrón que Switch.
+-- Se guarda como anytime (avisa también fuera de combate) y solo si difiere
+-- de lo que trae el aviso de entrada (anytimeDefault), para que lo normal no
+-- ocupe nada en el archivo.
+function Util.CombatOnly(settings, anytimeDefault, onChange)
+    local option = {}
+    function option.IsCombatOnly()
+        local saved = settings().anytime
+        if saved == nil then return not anytimeDefault end
+        return not saved
+    end
+    function option.SetCombatOnly(on)
+        Util.SetOverride(settings(), "anytime", not on, anytimeDefault)
+        onChange(on)
+        Util.Fire(Const.MSG.SETTINGS_CHANGED)
+    end
+    return option
 end
 
 -- Texto en color para el chat.

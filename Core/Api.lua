@@ -347,6 +347,42 @@ function Api.FindSpellByName(name)
     end
 end
 
+-- De una lista de rangos de un hechizo, de menor a mayor, el más alto que
+-- sabe el jugador, o nil si no sabe ninguno.
+function Api.KnownSpell(ranks)
+    for i = #ranks, 1, -1 do
+        if Api.IsSpellKnown(ranks[i]) then return ranks[i] end
+    end
+end
+
+-- Si se puede lanzar ya (sin contar el enfriamiento): las que solo valen tras
+-- algo, como Revancha tras bloquear, esquivar o parar, lo dicen aquí. El
+-- juego no lo oculta en combate (no es un valor secreto, ver la
+-- documentación de C_Spell.IsSpellUsable).
+function Api.IsSpellUsable(id)
+    local f = apiFunction(C_Spell, "IsSpellUsable") or IsUsableSpell
+    if not f then return false end
+    local usable = f(id)
+    if Api.IsSecret(usable) then return false end
+    return usable and true or false
+end
+
+-- Enfriamiento de un hechizo: inicio y duración en segundos (0, 0 si está
+-- listo), o nil si el juego no lo dice. En combate lo oculta (valor
+-- secreto): quien lo usa debe tener su propia cuenta (Features/CooldownWarning.lua).
+function Api.SpellCooldown(id)
+    local info = call(C_Spell, "GetSpellCooldown", id)
+    if type(info) ~= "table" then return nil end
+    local start, duration = info.startTime, info.duration
+    if anySecret(start, duration) or not start or not duration then return nil end
+    return start, duration
+end
+
+-- Hora del juego en segundos (con decimales), la de los enfriamientos.
+function Api.Time()
+    return GetTime()
+end
+
 --------------------------------------------------------------------------------
 -- Objetos
 --------------------------------------------------------------------------------

@@ -42,6 +42,12 @@ function newObj()
       if k == "Hide" then rawset(self, "_shown", false) end
       if k == "Show" then local was = rawget(self, "_shown"); rawset(self, "_shown", true) if not was and rawget(self, "_OnShow") then rawget(self, "_OnShow")(self) end end
       if k == "SetPoint" then rawset(self, "_point", { ... }) end
+      if k == "SetSize" then rawset(self, "_w", (select(1, ...))) rawset(self, "_h", (select(2, ...))) end
+      if k == "SetWidth" then rawset(self, "_w", (...)) end
+      if k == "SetHeight" then rawset(self, "_h", (...)) end
+      if k == "GetWidth" then return rawget(self, "_w") or 0 end
+      if k == "GetHeight" then return rawget(self, "_h") or 0 end
+      if k == "SetAlpha" then rawset(self, "_alpha", (...)) end
       if k == "GetPoint" then local p = rawget(self, "_point") if p then return unpack(p) end end
       if k == "GetName" then return rawget(self, "_name") end
       if k == "GetText" then return rawget(self, "_text") end
@@ -86,8 +92,18 @@ function GetCursorPosition() return cursorXY[1], cursorXY[2] end
 UIParent, UISpecialFrames, GameTooltip = newObj(), {}, newObj()
 Enum = { SpellBookSpellBank = { Player = 0 } }
 C_SpellBook = { IsSpellKnown = function(id) return known[id] or false end }
+-- usable: hechizos que se pueden lanzar ya; cooldowns: { inicio, duración }
+-- de los que están en enfriamiento; cooldownsSecret: el juego los oculta.
+usable, cooldowns, cooldownsSecret, now = {}, {}, false, 1000
+function GetTime() return now end
 C_Spell = { GetSpellName = function(id) return spellnames[id] end, GetSpellTexture = function(id) return 100000 + id end,
-            GetSpellInfo = function(n) return nil end }
+            GetSpellInfo = function(n) return nil end,
+            IsSpellUsable = function(id) return usable[id] == true, false end,
+            GetSpellCooldown = function(id)
+              if cooldownsSecret then return { startTime = SECRET, duration = SECRET } end
+              local c = cooldowns[id] or { 0, 0 }
+              return { startTime = c[1], duration = c[2] }
+            end }
 requested = {}
 C_Item = { GetItemCount = function(id) return bags[id] or 0 end, GetItemNameByID = function(id) return names[id] end,
            GetItemIconByID = function(id) return icons[id] end, RequestLoadItemDataByID = function(id) requested[id] = true end,
